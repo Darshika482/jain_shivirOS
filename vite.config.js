@@ -9,6 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'pwa-192.png', 'pwa-512.png', 'apple-touch-icon.png'],
       workbox: {
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024, // 4 MiB — exceljs splits into its own chunk
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {

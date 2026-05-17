@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
-import ExcelJS from 'exceljs';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useVolunteerStore } from '../../store/useVolunteerStore.js';
@@ -640,6 +639,7 @@ export default function AdminVolunteers() {
   };
 
   const downloadMentorTemplate = async () => {
+    const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Mentors');
 
