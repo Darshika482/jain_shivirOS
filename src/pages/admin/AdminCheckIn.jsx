@@ -263,7 +263,6 @@ function CheckInApp({ onBack, onLogout }) {
   const searchHits = q.length >= 2
     ? baseList.filter(s =>
         s.name.toLowerCase().includes(q) ||
-        (s.name_hi && s.name_hi.includes(query.trim())) ||
         (s.mobile && s.mobile.includes(q)) ||
         s.roll_no.toLowerCase().includes(q)
       )

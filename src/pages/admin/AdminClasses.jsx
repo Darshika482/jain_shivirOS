@@ -52,8 +52,8 @@ function downloadClassOverviewCSV(classData) {
 function downloadClassRosterCSV(classData) {
   const headers = [
     'Class', 'Session 1 Teachers', 'Session 2 Teachers', 'Session 3 Teachers',
-    'Roll No', 'Reg ID', 'Name', 'Name (Hindi)', 'Gender', 'Age', 'Batch',
-    'Room', 'City', 'Pathshala', 'Checked In', 'Kit Given', 'Total Points',
+    'Roll No', 'Reg ID', 'Name', 'Gender', 'Age', 'Batch',
+    'Room', 'City', 'Pathshala', 'Checked In', 'Total Points',
   ];
   const rows = [];
   for (const cls of classData) {
@@ -61,16 +61,15 @@ function downloadClassRosterCSV(classData) {
     const t2 = cls.sessions[1]?.teachers.join('; ') || 'Not assigned';
     const t3 = cls.sessions[2]?.teachers.join('; ') || 'Not assigned';
     if (cls.classStudents.length === 0) {
-      rows.push([cls.classCode, t1, t2, t3, '', '', '', '', '', '', '', '', '', '', '', '', '']);
+      rows.push([cls.classCode, t1, t2, t3, '', '', '', '', '', '', '', '', '', '', '']);
     } else {
       for (const s of cls.classStudents) {
         rows.push([
           cls.classCode, t1, t2, t3,
-          s.roll_no || '', s.reg_id || '', s.name || '', s.name_hi || '',
+          s.roll_no || '', s.reg_id || '', s.name || '',
           s.gender || '', s.age || '', s.batch || '',
           s.room_no || '', s.city || '', s.pathshala || '',
           s.checked_in ? 'Yes' : 'No',
-          s.kit_given ? 'Yes' : 'No',
           s.total_points ?? 0,
         ]);
       }

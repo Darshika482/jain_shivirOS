@@ -56,7 +56,6 @@ export const useStudentStore = create(
         const q = query.toLowerCase();
         const results = get().students.filter(s =>
           s.name.toLowerCase().includes(q) ||
-          (s.name_hi && s.name_hi.includes(query)) ||
           s.roll_no.toLowerCase().includes(q) ||
           (s.mobile && s.mobile.includes(q)) ||
           (s.parent_name && s.parent_name.toLowerCase().includes(q)) ||
@@ -233,7 +232,6 @@ export const useStudentStore = create(
             id: `csv_${Date.now()}_${i}`,
             roll_no: row['Roll Number'] || row.Roll || row.roll_no || '',
             name: row['Child Name'] || row['Name (English)'] || row.Name || row.name || '',
-            name_hi: row['Name (Hindi)'] || row['नाम'] || row.name_hi || '',
             mobile: (row.Mobile || row.mobile || '').replace(/[^0-9]/g, '').slice(0, 15),
             whatsapp: (row.WhatsApp || row.whatsapp || '').replace(/[^0-9]/g, '').slice(0, 15),
             class: row.Class || row.class || '',

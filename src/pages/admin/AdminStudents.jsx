@@ -5,7 +5,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import Papa from 'papaparse';
 import { getTeacherNameForClass } from '../../lib/classTeachers.js';
 
-const EMPTY_STUDENT = { roll_no: '', name: '', name_hi: '', mobile: '', gender: '', batch: '', class: '', room_no: '', group: '', group_hi: '', parent_name: '', mother_name: '', age: '', reg_id: '', city: '', pin_code: '', address: '', pathshala: '', achievements: '' };
+const EMPTY_STUDENT = { roll_no: '', name: '', mobile: '', gender: '', batch: '', class: '', room_no: '', group: '', group_hi: '', parent_name: '', mother_name: '', age: '', reg_id: '', city: '', pin_code: '', address: '', pathshala: '', achievements: '' };
 
 const BATCH_CLASSES = {
   'Bhag-1': ['1A', '1B', '1C', '1D', '1E', '1F', '1G', '1H'],
@@ -15,7 +15,7 @@ const BATCH_CLASSES = {
 };
 
 const CSV_HEADERS = [
-  'Roll Number', 'Reg ID', 'Child Name', 'Name (Hindi)',
+  'Roll Number', 'Reg ID', 'Child Name',
   'Gender', 'Age', 'DOB',
   'Allotted Book', 'Class', 'Room No.',
   'Father Name', 'Mother Name', 'Mobile', 'WhatsApp',
@@ -25,8 +25,8 @@ const CSV_HEADERS = [
 ];
 
 const TEMPLATE_ROWS = [
-  ['B001', 'CAMP-2026-XXXXX', 'Arham Jain', 'अर्हम जैन',   'Boy',  '9', '2016-06-26', 'Bhag-1', '1A', 'D1', 'Vikram Jain', 'Preeti Jain', '9179105875', '9179105875', 'Indore',  '452001', '12 MG Road, Indore',      'Indore Pathshala', 'State Quiz Winner', 'Teacher 1A', 'शिक्षक 1A'],
-  ['G001', 'CAMP-2026-YYYYY', 'Aarvi Jain', 'आर्वी जैन',   'Girl', '9', '2016-07-03', 'Bhag-1', '1B', 'F3', 'Sachin Jain', 'Ritu Jain',   '7067514988', '7067514988', 'Bhopal',   '462001', '45 Arera Colony, Bhopal', '',                 '',                  'Teacher 1B', 'शिक्षक 1B'],
+  ['B001', 'CAMP-2026-XXXXX', 'Arham Jain', 'Boy',  '9', '2016-06-26', 'Bhag-1', '1A', 'D1', 'Vikram Jain', 'Preeti Jain', '9179105875', '9179105875', 'Indore', '452001', '12 MG Road, Indore',      'Indore Pathshala', 'State Quiz Winner', 'Teacher 1A', 'शिक्षक 1A'],
+  ['G001', 'CAMP-2026-YYYYY', 'Aarvi Jain', 'Girl', '9', '2016-07-03', 'Bhag-1', '1B', 'F3', 'Sachin Jain', 'Ritu Jain',   '7067514988', '7067514988', 'Bhopal', '462001', '45 Arera Colony, Bhopal', '',                 '',                  'Teacher 1B', 'शिक्षक 1B'],
 ];
 
 const STUDENT_FILTERS = [
@@ -185,11 +185,13 @@ export default function AdminStudents() {
   const handleEdit = (s) => {
     setEditingId(s.id);
     setForm({
-      roll_no: s.roll_no, name: s.name, name_hi: s.name_hi || '',
+      roll_no: s.roll_no, name: s.name,
       mobile: s.mobile || '', gender: s.gender || '', batch: s.batch || '',
       class: s.class || '', room_no: s.room_no || '', group: s.group || '', group_hi: s.group_hi || '',
       parent_name: getFatherName(s), mother_name: s.mother_name || '',
       age: s.age || '', reg_id: s.reg_id || '',
+      city: s.city || '', pin_code: s.pin_code || '', address: s.address || '',
+      pathshala: s.pathshala || '', achievements: s.achievements || '',
     });
     setShowForm(true);
     setErrors({});
@@ -225,12 +227,12 @@ export default function AdminStudents() {
   };
 
   const handleExportAll = () => {
-    const exportHeaders = ['Roll Number', 'Reg ID', 'Child Name', 'Name (Hindi)', 'Gender', 'Age', 'DOB', 'Allotted Book', 'Class', 'Class Teacher', 'Class Teacher (Hindi)', 'Father Name', 'Mother Name', 'Mobile', 'WhatsApp', 'Health Issue', 'Health Detail', 'Pathshala', 'Prev Shivir', 'Kit Given', 'Checked In', 'Total Points'];
+    const exportHeaders = ['Roll Number', 'Reg ID', 'Child Name', 'Gender', 'Age', 'DOB', 'Allotted Book', 'Class', 'Room No.', 'Class Teacher', 'Class Teacher (Hindi)', 'Father Name', 'Mother Name', 'Mobile', 'WhatsApp', 'City', 'Pin Code', 'Address', 'Pathshala', 'Achievements', 'Checked In', 'Total Points'];
     const rows = students.map(s => [
-      s.roll_no, s.reg_id || '', s.name, s.name_hi || '', s.gender || '', s.age || '', s.dob || '',
-      s.batch || '', s.class || '', s.group || '', s.group_hi || '', getFatherName(s), s.mother_name || '', s.mobile || '',
-      s.whatsapp || '', s.health_issue ? 'Yes' : 'No', s.health_detail || '',
-      s.pathshala || '', s.prev_shivir ? 'Yes' : 'No', s.kit_given ? 'Yes' : 'No',
+      s.roll_no, s.reg_id || '', s.name, s.gender || '', s.age || '', s.dob || '',
+      s.batch || '', s.class || '', s.room_no || '', s.group || '', s.group_hi || '', getFatherName(s), s.mother_name || '', s.mobile || '',
+      s.whatsapp || '', s.city || '', s.pin_code || '', s.address || '',
+      s.pathshala || '', s.achievements || '',
       s.checked_in ? 'Yes' : 'No', s.total_points,
     ]);
     const csvContent = [exportHeaders, ...rows]
@@ -406,7 +408,6 @@ export default function AdminStudents() {
               {[
                 { key: 'roll_no',      label: 'Roll No.',             required: true  },
                 { key: 'name',         label: 'Name (English)',        required: true  },
-                { key: 'name_hi',      label: 'नाम (हिंदी)',           required: false },
                 { key: 'mobile',       label: 'Mobile',                required: false },
                 { key: 'age',          label: 'Age',                   required: false },
                 { key: 'group',        label: 'Class Teacher',         required: false },
@@ -525,7 +526,6 @@ export default function AdminStudents() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-2.5">
         {filtered.map((s) => {
-          const displayName = isHindi && s.name_hi ? s.name_hi : s.name;
           const displayTeacher = isHindi
             ? (s.group_hi || getTeacherNameForClass(s.class, true) || s.group || '—')
             : (s.group || getTeacherNameForClass(s.class, false) || s.group_hi || '—');
@@ -534,8 +534,7 @@ export default function AdminStudents() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="text-xs text-gray-500 font-mono">{s.roll_no}</div>
-                <div className="font-semibold text-gray-900 truncate">{displayName}</div>
-                <div className="text-xs text-gray-500 truncate">{isHindi ? (s.name || '—') : (s.name_hi || '—')}</div>
+                <div className="font-semibold text-gray-900 truncate">{s.name}</div>
               </div>
               <div className="text-right">
                 <div className="text-[11px] text-gray-500">Points</div>
@@ -604,8 +603,7 @@ export default function AdminStudents() {
             <thead className="bg-forest-700 text-white">
               <tr>
                 <th className="px-4 py-3 text-left">Roll</th>
-                <th className="px-4 py-3 text-left">Name (EN)</th>
-                <th className="px-4 py-3 text-left">नाम (HI)</th>
+                <th className="px-4 py-3 text-left">Name</th>
                 <th className="px-4 py-3 text-left">Gender</th>
                 <th className="px-4 py-3 text-left">Age</th>
                 <th className="px-4 py-3 text-left">Book</th>
@@ -622,16 +620,13 @@ export default function AdminStudents() {
             </thead>
             <tbody>
               {filtered.map((s, i) => {
-                const displayName = isHindi && s.name_hi ? s.name_hi : s.name;
-                const displayNameHiCol = isHindi ? (s.name || '—') : (s.name_hi || '—');
                 const displayTeacher = isHindi
                   ? (s.group_hi || getTeacherNameForClass(s.class, true) || s.group || '—')
                   : (s.group || getTeacherNameForClass(s.class, false) || s.group_hi || '—');
                 return (
                 <tr key={s.id} className={`border-b last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
                   <td className="px-4 py-3 font-mono text-xs text-gray-600">{s.roll_no}</td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{displayName}</td>
-                  <td className="px-4 py-3 text-gray-600 text-sm">{displayNameHiCol}</td>
+                  <td className="px-4 py-3 font-semibold text-gray-900">{s.name}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.gender || '—'}</td>
                   <td className="px-4 py-3 text-gray-600 text-xs">{s.age || '—'}</td>
                   <td className="px-4 py-3">
