@@ -10,6 +10,7 @@ import Select from '../../components/common/Select.jsx';
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import { buildWhatsAppLink } from '../../lib/whatsapp.js';
 import { CLASS_TEACHER_NAMES } from '../../lib/classTeachers.js';
+import { useConfigStore, DEFAULT_BATCH_CLASSES } from '../../store/useConfigStore.js';
 
 // Open WhatsApp with a pre-filled login PIN message for this volunteer.
 // Surface a clear toast if mobile or PIN is missing.
@@ -184,6 +185,7 @@ export default function AdminVolunteers() {
   const { volunteers, addVolunteer, updateVolunteer, deleteVolunteer, importFromCSV } = useVolunteerStore();
   const { students } = useStudentStore();
   const { schedule } = useScheduleStore();
+  const batchClasses = useConfigStore(s => s.batchClasses) || DEFAULT_BATCH_CLASSES;
 
   const [classSessionEvents, setClassSessionEvents] = useState([]);
   const [dbEvents, setDbEvents] = useState([]);
@@ -788,6 +790,7 @@ export default function AdminVolunteers() {
   ];
 
   const classOptions = [...new Set([
+    ...Object.values(batchClasses).flat(),
     ...Object.keys(CLASS_TEACHER_NAMES),
     ...(students || []).map(s => String(s.class || '').trim()).filter(Boolean),
   ])].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
