@@ -434,38 +434,46 @@ export default function AdminStudents() {
                 </select>
               </div>
 
-              {/* Batch dropdown */}
+              {/* Allotted Book — free text with suggestions */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
                   Allotted Book <span className="text-red-500">*</span>
                 </label>
-                <select
+                <input
+                  list="batch-options"
                   className={`input-field ${errors.batch ? 'border-red-400' : ''}`}
                   value={form.batch}
+                  placeholder="e.g. Bhag-1"
                   onChange={e => setForm(p => ({ ...p, batch: e.target.value, class: '' }))}
-                >
-                  <option value="">Select…</option>
-                  {Object.keys(BATCH_CLASSES).map(b => (
-                    <option key={b} value={b}>{b}</option>
-                  ))}
-                </select>
+                />
+                <datalist id="batch-options">
+                  {Object.keys(BATCH_CLASSES).map(b => <option key={b} value={b} />)}
+                </datalist>
                 {errors.batch && <p className="text-red-500 text-xs mt-1">{errors.batch}</p>}
               </div>
 
-              {/* Class dropdown (dependent on batch) */}
+              {/* Class — dropdown for known books, free text otherwise */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Class</label>
-                <select
-                  className="input-field"
-                  value={form.class}
-                  onChange={e => setForm(p => ({ ...p, class: e.target.value }))}
-                  disabled={!form.batch || !BATCH_CLASSES[form.batch]}
-                >
-                  <option value="">Select…</option>
-                  {(BATCH_CLASSES[form.batch] || []).map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
+                {BATCH_CLASSES[form.batch] ? (
+                  <select
+                    className="input-field"
+                    value={form.class}
+                    onChange={e => setForm(p => ({ ...p, class: e.target.value }))}
+                  >
+                    <option value="">Select…</option>
+                    {BATCH_CLASSES[form.batch].map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    className="input-field"
+                    value={form.class}
+                    placeholder="e.g. 3A"
+                    onChange={e => setForm(p => ({ ...p, class: e.target.value.toUpperCase() }))}
+                  />
+                )}
               </div>
 
               {/* Room No */}
