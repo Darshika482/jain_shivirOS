@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../store/useAuthStore.js';
+import { useConfigStore } from '../../store/useConfigStore.js';
 import LanguageToggle from '../../components/common/LanguageToggle.jsx';
 
 const ROLES = [
@@ -19,6 +20,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { loginVolunteer, loginAdmin, loginCoinkeeper } = useAuthStore();
+  const campName = useConfigStore(s => s.campName) || import.meta.env.VITE_CAMP_NAME || t('app.title');
+  const campCity = useConfigStore(s => s.campCity) || import.meta.env.VITE_CAMP_CITY || t('app.subtitle');
 
   const [selectedRole, setSelectedRole] = useState(null);
   const [pin, setPin] = useState('');
@@ -82,8 +85,8 @@ export default function LoginPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 sm:px-6 pt-7 pb-5 max-w-3xl mx-auto w-full">
         <div>
-          <h1 className="text-[1.85rem] leading-tight font-bold text-white">{t('app.title')}</h1>
-          <p className="text-forest-200 text-sm mt-1">{t('app.subtitle')}</p>
+          <h1 className="text-[1.85rem] leading-tight font-bold text-white">{campName}</h1>
+          <p className="text-forest-200 text-sm mt-1">{campCity}</p>
         </div>
         <LanguageToggle />
       </div>
