@@ -7,6 +7,7 @@ import { useAttendanceStore } from '../../store/useAttendanceStore.js';
 import { useTransactionStore } from '../../store/useTransactionStore.js';
 import { CLASS_TEACHER_NAMES, getTeacherNameForClass } from '../../lib/classTeachers.js';
 import { CAMP_TOTAL_DAYS, getDateForCampDay } from '../../lib/campDates.js';
+import { useConfigStore, DEFAULT_BATCH_CLASSES } from '../../store/useConfigStore.js';
 
 const SESSION_KEYS = [1, 2, 3];
 
@@ -119,6 +120,7 @@ export default function AdminClasses() {
   const { students, fetchStudents } = useStudentStore();
   const { volunteers } = useVolunteerStore();
   const { currentDay, fetchTransactions } = useTransactionStore();
+  const batchClasses = useConfigStore(s => s.batchClasses) || DEFAULT_BATCH_CLASSES;
   const fetchAttendance = useAttendanceStore(s => s.fetchAttendance);
   const getStatus = useAttendanceStore(s => s.getStatus);
   const getSubmission = useAttendanceStore(s => s.getSubmission);
@@ -266,13 +268,12 @@ export default function AdminClasses() {
   };
 
   const classCodes = useMemo(() => {
-    const fromStudents = students
-      .map(s => String(s.class || '').trim())
-      .filter(Boolean);
+    const fromBatchConfig = Object.values(batchClasses).flat();
     const fromTeacherMap = Object.keys(CLASS_TEACHER_NAMES);
-    return [...new Set([...fromTeacherMap, ...fromStudents])]
+    const fromStudents = students.map(s => String(s.class || '').trim()).filter(Boolean);
+    return [...new Set([...fromBatchConfig, ...fromTeacherMap, ...fromStudents])]
       .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  }, [students]);
+  }, [students, batchClasses]);
 
   const classTeachersBySession = useMemo(() => {
     const map = {};
