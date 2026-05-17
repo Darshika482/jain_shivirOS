@@ -6,6 +6,7 @@ import { useStudentStore } from './store/useStudentStore.js';
 import { useVolunteerStore } from './store/useVolunteerStore.js';
 import { useTransactionStore } from './store/useTransactionStore.js';
 import { useCoinStore } from './store/useCoinStore.js';
+import { useConfigStore } from './store/useConfigStore.js';
 import LoginPage from './pages/auth/LoginPage.jsx';
 import VolunteerApp from './pages/volunteer/VolunteerApp.jsx';
 import CoordinatorApp from './pages/coordinator/CoordinatorApp.jsx';
@@ -15,6 +16,7 @@ import DailySchedule from './pages/schedule/DailySchedule.jsx';
 import AdminLayout from './pages/admin/AdminLayout.jsx';
 import AdminCheckIn from './pages/admin/AdminCheckIn.jsx';
 import TeacherAttendanceApp from './pages/teacher/TeacherAttendanceApp.jsx';
+import SetupWizard from './pages/setup/SetupWizard.jsx';
 
 function AppInitializer() {
   const fetchStudents = useStudentStore(s => s.fetchStudents);
@@ -40,8 +42,6 @@ function AppInitializer() {
 
 function RequireAuth({ children, allowedRoles }) {
   const { currentUser, role, _hasHydrated } = useAuthStore();
-  // Wait for Zustand to finish reading persisted auth from localStorage
-  // before deciding whether the user is logged in.
   if (!_hasHydrated) return null;
   if (!currentUser) return <Navigate to="/login" replace />;
   if (allowedRoles && !allowedRoles.includes(role)) return <Navigate to="/login" replace />;
@@ -49,6 +49,19 @@ function RequireAuth({ children, allowedRoles }) {
 }
 
 export default function App() {
+  const { isSetupComplete } = useConfigStore();
+  const hasEnvConfig = Boolean(import.meta.env.VITE_SUPABASE_URL);
+
+  // Show setup wizard if no env config and setup not yet completed
+  if (!hasEnvConfig && !isSetupComplete) {
+    return (
+      <>
+        <Toaster position="top-center" toastOptions={{ duration: 3000, style: { borderRadius: '12px' } }} />
+        <SetupWizard />
+      </>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Toaster
@@ -60,6 +73,7 @@ export default function App() {
       />
       <AppInitializer />
       <Routes>
+        <Route path="/setup" element={<SetupWizard />} />
         <Route path="/" element={<Navigate to="/schedule" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/schedule" element={<DailySchedule />} />
@@ -72,7 +86,6 @@ export default function App() {
         } />
 
         <Route path="/volunteer" element={<Navigate to="/mentor/actions" replace />} />
-
         <Route path="/mentor" element={<Navigate to="/mentor/actions" replace />} />
 
         <Route path="/teacher" element={

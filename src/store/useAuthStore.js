@@ -2,8 +2,21 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '../lib/supabase.js';
 
-// Set VITE_ADMIN_PASSWORD in your .env file. Never commit real credentials.
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+function getAdminPassword() {
+  try {
+    const raw = localStorage.getItem('shiviros-config');
+    const stored = raw ? JSON.parse(raw)?.state : null;
+    return stored?.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+  } catch { return import.meta.env.VITE_ADMIN_PASSWORD || 'admin123'; }
+}
+
+function getCoinkeeperPin() {
+  try {
+    const raw = localStorage.getItem('shiviros-config');
+    const stored = raw ? JSON.parse(raw)?.state : null;
+    return stored?.coinkeeperPin || import.meta.env.VITE_COINKEEPER_PIN || '0000';
+  } catch { return import.meta.env.VITE_COINKEEPER_PIN || '0000'; }
+}
 
 /** @returns {string[]} */
 function normalizeRolesArray(volunteer) {
@@ -206,13 +219,13 @@ export const useAuthStore = create(
       },
 
       loginAdmin: (password) => {
-        if (password !== ADMIN_PASSWORD) return { success: false, error: 'Wrong password.' };
+        if (password !== getAdminPassword()) return { success: false, error: 'Wrong password.' };
         set({ currentUser: { id: 'admin', name: 'Camp Admin', role: 'Admin' }, role: 'admin' });
         return { success: true };
       },
 
       loginCoinkeeper: (pin) => {
-        if (pin !== (import.meta.env.VITE_COINKEEPER_PIN || '0000')) return { success: false, error: 'Wrong PIN.' };
+        if (pin !== getCoinkeeperPin()) return { success: false, error: 'Wrong PIN.' };
         set({ currentUser: { id: 'keeper', name: 'Coin Keeper', role: 'Keeper' }, role: 'coinkeeper' });
         return { success: true };
       },

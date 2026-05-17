@@ -1,6 +1,6 @@
 -- =============================================
--- Bal Sanskar Shivir – Supabase Schema
--- Reflects actual live DB state as of May 2026.
+-- jain-shivirOS – Supabase Schema
+-- Run this in Supabase SQL Editor to set up all tables for a fresh instance.
 --
 -- FRESH INSTANCE: run the CREATE TABLE blocks.
 -- EXISTING INSTANCE: run only the ALTER TABLE

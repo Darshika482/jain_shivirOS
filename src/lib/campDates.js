@@ -1,12 +1,18 @@
-// Single source of truth for the camp calendar.
-// Configure your camp dates in .env:
-//   VITE_CAMP_START_DATE=2026-05-03   (YYYY-MM-DD)
-//   VITE_CAMP_END_DATE=2026-05-09
-//   VITE_CAMP_TOTAL_DAYS=7
+// Configure camp dates in .env (VITE_CAMP_START_DATE, VITE_CAMP_END_DATE, VITE_CAMP_TOTAL_DAYS)
+// or via the setup wizard (stored in localStorage under shiviros-config).
 
-export const CAMP_START_DATE = import.meta.env.VITE_CAMP_START_DATE || '2026-05-03';
-export const CAMP_END_DATE   = import.meta.env.VITE_CAMP_END_DATE   || '2026-05-09';
-export const CAMP_TOTAL_DAYS = Number(import.meta.env.VITE_CAMP_TOTAL_DAYS) || 7;
+function readStoredDates() {
+  try {
+    const raw = localStorage.getItem('shiviros-config');
+    if (!raw) return {};
+    return JSON.parse(raw)?.state || {};
+  } catch { return {}; }
+}
+
+const _stored = readStoredDates();
+export const CAMP_START_DATE = _stored.campStartDate || import.meta.env.VITE_CAMP_START_DATE || '2026-05-03';
+export const CAMP_END_DATE   = _stored.campEndDate   || import.meta.env.VITE_CAMP_END_DATE   || '2026-05-09';
+export const CAMP_TOTAL_DAYS = Number(_stored.campTotalDays) || Number(import.meta.env.VITE_CAMP_TOTAL_DAYS) || 7;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

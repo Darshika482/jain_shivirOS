@@ -24,9 +24,9 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: 'Jabalpur, Shivir 2026',
-        short_name: 'Jabalpur Shivir',
-        description: 'Jabalpur, Shivir 2026 – Student rewards & check-in system',
+        name: 'ShivirOS — Camp Management',
+        short_name: 'ShivirOS',
+        description: 'Open-source camp management platform — points, attendance, leaderboard & more',
         theme_color: '#1a3d2b',
         background_color: '#1a3d2b',
         display: 'standalone',
