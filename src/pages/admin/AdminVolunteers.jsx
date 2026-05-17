@@ -194,6 +194,7 @@ export default function AdminVolunteers() {
   const [filterMobile, setFilterMobile] = useState('all');
   const [filterResponsibility, setFilterResponsibility] = useState('all');
   const [newResp, setNewResp] = useState('');
+  const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const csvInputRef = useRef(null);
   const [dutyAreas, setDutyAreas] = useState(() => {
@@ -772,6 +773,12 @@ export default function AdminVolunteers() {
           + {t('admin.addVolunteer')}
         </button>
         <span className="text-sm text-gray-500">{volunteers.filter(v => !v.roles?.includes('Admin')).length} mentors</span>
+        <button
+          onClick={() => setShowImport(s => !s)}
+          className="text-sm px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-700 hover:border-forest-500 transition-all"
+        >
+          {showImport ? 'Hide' : 'Bulk Import / Export'}
+        </button>
         {/* View toggle */}
         <div className="ml-auto flex gap-0 border-2 border-gray-200 rounded-xl overflow-hidden">
           <button
@@ -790,7 +797,7 @@ export default function AdminVolunteers() {
       </div>
 
       {/* ── BULK IMPORT / EXPORT ─────────────────────────────────────────────── */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
+      {showImport && <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
         <div className="text-sm font-semibold text-gray-700 mb-1">Bulk Import / Export</div>
         <p className="text-xs text-gray-500 mb-3">
           Download all current mentors as CSV, or use the Excel template (has role dropdowns built in) to add mentors in bulk.
@@ -821,7 +828,7 @@ export default function AdminVolunteers() {
           <span className="font-semibold text-gray-600">Roles:</span> {ROLES.join(' · ')} &nbsp;·&nbsp;
           <span className="font-semibold text-gray-600">Multiple values:</span> separate with semicolons
         </div>
-      </div>
+      </div>}
 
       {/* ── MENTOR LIST VIEW ─────────────────────────────────────────────────── */}
       {view === 'list' && (
