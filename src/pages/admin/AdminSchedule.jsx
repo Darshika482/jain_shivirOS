@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '../../lib/supabase.js';
 import { useScheduleStore } from '../../store/useScheduleStore.js';
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import Select from '../../components/common/Select.jsx';
@@ -16,6 +17,8 @@ const TYPE_BADGE = {
   special: <span className="text-xs bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full font-bold">⭐ Special</span>,
   slot:    <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">📦 Slot</span>,
   base:    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Base</span>,
+  class:   <span className="text-xs bg-saffron-100 text-saffron-700 px-2 py-0.5 rounded-full font-bold">📚 Class</span>,
+  event:   <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">📅 Event</span>,
 };
 
 export default function AdminSchedule() {
@@ -36,8 +39,40 @@ export default function AdminSchedule() {
   const [newStakeholder, setNewStakeholder]   = useState({ name: '', role: '', type: 'Teacher' });
   const [newCheckItem, setNewCheckItem]       = useState('');
 
-  const activities = getActivitiesForDay(selectedDay);
-  const sorted = [...activities].sort((a, b) => a.start_time.localeCompare(b.start_time));
+  // ── Supabase events (recurring, shown on every day) ──────────────────
+  const [dbEvents, setDbEvents] = useState([]);
+  useEffect(() => {
+    supabase
+      .from('events')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => setDbEvents(data || []));
+  }, []);
+
+  // Convert a HH:MM time_slot string (e.g. "09:00–09:45") to a start_time for sorting
+  function slotToStart(slot) {
+    if (!slot) return '99:99';
+    return String(slot).split(/[-–]/)[0].trim();
+  }
+
+  // Merge Supabase events + local special activities for the selected day
+  const localActivities = getActivitiesForDay(selectedDay);
+  const dbMapped = dbEvents.map(ev => ({
+    id: ev.id,
+    name: ev.name,
+    start_time: slotToStart(ev.time_slot),
+    end_time: '',
+    time_slot: ev.time_slot || '',
+    venue: '',
+    coins: ev.coin_pool_boys || 0,
+    type: ev.event_type === 'class' ? 'class' : 'event',
+    notes: ev.notes || '',
+    responsible_role: ev.responsible_role || '',
+    _fromDB: true,
+  }));
+  const sorted = [...dbMapped, ...localActivities]
+    .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
 
   // ── Add special activity ────────────────────────────────────────────
   const validate = () => {
@@ -210,10 +245,16 @@ export default function AdminSchedule() {
               {/* Activity row */}
               <div className="flex items-start gap-3 p-3.5 sm:p-4">
                 {/* Time */}
-                <div className="text-center flex-shrink-0 w-12 sm:w-14">
-                  <div className="text-sm font-bold text-forest-700 leading-tight">{act.start_time}</div>
-                  {act.end_time && act.end_time !== act.start_time && (
-                    <div className="text-[11px] text-gray-400 mt-0.5">{act.end_time}</div>
+                <div className="text-center flex-shrink-0 w-14 sm:w-16">
+                  {act._fromDB && act.time_slot ? (
+                    <div className="text-sm font-bold text-forest-700 leading-tight">{act.time_slot}</div>
+                  ) : (
+                    <>
+                      <div className="text-sm font-bold text-forest-700 leading-tight">{act.start_time}</div>
+                      {act.end_time && act.end_time !== act.start_time && (
+                        <div className="text-[11px] text-gray-400 mt-0.5">{act.end_time}</div>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -250,8 +291,8 @@ export default function AdminSchedule() {
 
                 {/* Right actions */}
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                  {/* Plan toggle — not for slot activities */}
-                  {act.type !== 'slot' && (
+                  {/* Plan toggle — not for DB events or slot activities */}
+                  {!act._fromDB && act.type !== 'slot' && (
                     <button
                       onClick={() => openPlan(act)}
                       className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold border transition-all
@@ -263,6 +304,9 @@ export default function AdminSchedule() {
                     >
                       {isExpanded ? 'Close' : summary ? 'Edit Plan' : '+ Plan'}
                     </button>
+                  )}
+                  {act._fromDB && (
+                    <span className="text-xs text-gray-400 italic">via Operations</span>
                   )}
                   {act.type === 'special' && (
                     <button
