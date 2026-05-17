@@ -1,4 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Papa from 'papaparse';
+import ExcelJS from 'exceljs';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useVolunteerStore } from '../../store/useVolunteerStore.js';
@@ -178,7 +180,7 @@ const AVAIL_COLORS = {
 
 export default function AdminVolunteers() {
   const { t } = useTranslation();
-  const { volunteers, addVolunteer, updateVolunteer, deleteVolunteer } = useVolunteerStore();
+  const { volunteers, addVolunteer, updateVolunteer, deleteVolunteer, importFromCSV } = useVolunteerStore();
   const { students } = useStudentStore();
   const { schedule } = useScheduleStore();
 
@@ -193,6 +195,9 @@ export default function AdminVolunteers() {
   const [filterMobile, setFilterMobile] = useState('all');
   const [filterResponsibility, setFilterResponsibility] = useState('all');
   const [newResp, setNewResp] = useState('');
+  const [showImport, setShowImport] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const csvInputRef = useRef(null);
   const [dutyAreas, setDutyAreas] = useState(() => {
     try {
       if (typeof window === 'undefined') return DEFAULT_DUTY_AREAS;
@@ -634,6 +639,74 @@ export default function AdminVolunteers() {
     setForm(p => ({ ...p, responsibilities: p.responsibilities.filter((_, idx) => idx !== i) }));
   };
 
+  const downloadMentorTemplate = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Mentors');
+
+    const headers = ['Name', 'PIN', 'Mobile', 'City', 'Roles', 'Assigned Classes', 'Has Deduction Rights', 'Availability'];
+    const widths  = [22, 8, 15, 14, 28, 22, 22, 16];
+    sheet.addRow(headers);
+    sheet.getRow(1).eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1B5E20' } };
+    });
+    headers.forEach((_, i) => { sheet.getColumn(i + 1).width = widths[i]; });
+
+    sheet.addRow(['Rahul Jain',  '1234', '9876543210', 'Indore', 'Zone Mentor',  '1A;1B', 'No', 'Full Camp']);
+    sheet.addRow(['Priya Shah',  '5678', '8765432109', 'Bhopal', 'Class Teacher', '2A',    'No', 'Full Camp']);
+
+    const rolesFormula = `"${ROLES.join(',')}"`;
+    for (let row = 2; row <= 500; row++) {
+      sheet.getCell(`E${row}`).dataValidation = {
+        type: 'list', allowBlank: true, formulae: [rolesFormula],
+        showErrorMessage: true, errorStyle: 'warning',
+        error: 'For multiple roles, separate with semicolons: Zone Mentor;Class Teacher',
+      };
+      sheet.getCell(`G${row}`).dataValidation = {
+        type: 'list', allowBlank: true, formulae: ['"Yes,No"'],
+      };
+    }
+
+    // Reference sheet
+    const ref = workbook.addWorksheet('Valid Options');
+    ref.addRow(['Field', 'Valid Values']);
+    ref.getRow(1).font = { bold: true };
+    ref.addRow(['Roles', ROLES.join(' | ')]);
+    ref.addRow(['', 'Separate multiple roles with semicolons: Zone Mentor;Class Teacher']);
+    ref.addRow(['Has Deduction Rights', 'Yes | No']);
+    ref.addRow(['Assigned Classes', 'Class codes separated by semicolons: 1A;1B;2A']);
+    ref.addRow(['PIN', 'Must be unique for each mentor']);
+    ref.getColumn(1).width = 22;
+    ref.getColumn(2).width = 60;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'mentors-template.xlsx'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCSVImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    Papa.parse(file, {
+      header: true, skipEmptyLines: true,
+      complete: async ({ data }) => {
+        const result = await importFromCSV(data);
+        setImporting(false);
+        if (result.success) {
+          toast.success(`${result.count} mentor${result.count !== 1 ? 's' : ''} imported.`);
+          setShowImport(false);
+        } else {
+          toast.error(result.error || 'Import failed.');
+        }
+      },
+      error: () => { setImporting(false); toast.error('Could not read the CSV file.'); },
+    });
+  };
+
   const activityOptions = [
     { value: '', label: 'Unassigned' },
     ...Object.entries(schedule || {})
@@ -681,6 +754,12 @@ export default function AdminVolunteers() {
           + {t('admin.addVolunteer')}
         </button>
         <span className="text-sm text-gray-500">{volunteers.filter(v => !v.roles?.includes('Admin')).length} mentors</span>
+        <button
+          onClick={() => setShowImport(s => !s)}
+          className="text-sm px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-700 hover:border-forest-500 transition-all"
+        >
+          {showImport ? 'Hide Import' : 'Bulk Import / Export'}
+        </button>
         {/* View toggle */}
         <div className="ml-auto flex gap-0 border-2 border-gray-200 rounded-xl overflow-hidden">
           <button
@@ -697,6 +776,37 @@ export default function AdminVolunteers() {
           </button>
         </div>
       </div>
+
+      {/* ── BULK IMPORT / EXPORT ─────────────────────────────────────────────── */}
+      {showImport && (
+        <div className="bg-white border-2 border-dashed border-forest-300 rounded-2xl p-4 mb-4">
+          <div className="text-sm font-semibold text-gray-700 mb-1">Bulk Import / Export</div>
+          <p className="text-xs text-gray-500 mb-3">
+            Download the template (Excel), fill it in — the <strong>Roles</strong> and <strong>Has Deduction Rights</strong> columns have dropdowns built in.
+            Save as <strong>.csv</strong> and upload below. Multiple roles: separate with semicolons.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={downloadMentorTemplate}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-saffron-400 bg-saffron-50 text-saffron-800 text-sm font-semibold hover:bg-saffron-100 transition-all"
+            >
+              ⬇ Download Template (.xlsx)
+            </button>
+            <button
+              onClick={() => csvInputRef.current?.click()}
+              disabled={importing}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-forest-400 bg-forest-50 text-forest-800 text-sm font-semibold hover:bg-forest-100 transition-all disabled:opacity-50"
+            >
+              {importing ? '⏳ Importing…' : '⬆ Upload CSV'}
+            </button>
+            <input ref={csvInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
+          </div>
+          <div className="mt-3 text-xs text-gray-400 space-y-0.5">
+            <div><span className="font-semibold text-gray-600">Roles:</span> {ROLES.join(' · ')}</div>
+            <div><span className="font-semibold text-gray-600">Assigned Classes:</span> class codes separated by semicolons, e.g. <span className="font-mono">1A;1B;2A</span></div>
+          </div>
+        </div>
+      )}
 
       {/* ── MENTOR LIST VIEW ─────────────────────────────────────────────────── */}
       {view === 'list' && (
