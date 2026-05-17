@@ -22,6 +22,7 @@ export default function LoginPage() {
   const { loginVolunteer, loginAdmin, loginCoinkeeper } = useAuthStore();
   const campName = useConfigStore(s => s.campName) || import.meta.env.VITE_CAMP_NAME || t('app.title');
   const campCity = useConfigStore(s => s.campCity) || import.meta.env.VITE_CAMP_CITY || t('app.subtitle');
+  const adminPasswordConfigured = !!(useConfigStore(s => s.adminPassword) || import.meta.env.VITE_ADMIN_PASSWORD);
 
   const [selectedRole, setSelectedRole] = useState(null);
   const [pin, setPin] = useState('');
@@ -155,6 +156,11 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                 />
+                {!adminPasswordConfigured && (
+                  <p className="text-xs text-amber-600 mt-2 text-center font-medium">
+                    Default password: <span className="font-bold">darshika</span> — change it in Admin → Settings after login
+                  </p>
+                )}
               </div>
             )}
 
