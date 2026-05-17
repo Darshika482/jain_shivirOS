@@ -14,11 +14,19 @@ const BATCH_CLASSES = {
   'Bhag-4': ['4A'],
 };
 
-const CSV_HEADERS = ['Roll Number', 'Reg ID', 'Child Name', 'Gender', 'Age', 'DOB', 'Allotted Book', 'Father Name', 'Mother Name', 'Mobile', 'City', 'Pin Code', 'Address', 'Pathshala', 'Achievements'];
+const CSV_HEADERS = [
+  'Roll Number', 'Reg ID', 'Child Name', 'Name (Hindi)',
+  'Gender', 'Age', 'DOB',
+  'Allotted Book', 'Class', 'Room No.',
+  'Father Name', 'Mother Name', 'Mobile', 'WhatsApp',
+  'City', 'Pin Code', 'Address',
+  'Pathshala', 'Achievements',
+  'Class Teacher', 'Class Teacher (Hindi)',
+];
 
 const TEMPLATE_ROWS = [
-  ['B001', 'CAMP-2026-XXXXX', 'Arham Jain', 'Boy', '9', '2016-06-26', 'Bhag-1', 'Vikram Jain', 'Preeti Jain', '9179105875', 'Indore', '452001', '12 MG Road, Indore', 'Indore Pathshala', 'State Quiz Winner'],
-  ['G001', 'CAMP-2026-YYYYY', 'Aarvi Jain', 'Girl', '9', '2016-07-03', 'Bhag-1', 'Sachin Jain', 'Ritu Jain', '7067514988', 'Bhopal', '462001', '45 Arera Colony, Bhopal', '', ''],
+  ['B001', 'CAMP-2026-XXXXX', 'Arham Jain', 'अर्हम जैन',   'Boy',  '9', '2016-06-26', 'Bhag-1', '1A', 'D1', 'Vikram Jain', 'Preeti Jain', '9179105875', '9179105875', 'Indore',  '452001', '12 MG Road, Indore',      'Indore Pathshala', 'State Quiz Winner', 'Teacher 1A', 'शिक्षक 1A'],
+  ['G001', 'CAMP-2026-YYYYY', 'Aarvi Jain', 'आर्वी जैन',   'Girl', '9', '2016-07-03', 'Bhag-1', '1B', 'F3', 'Sachin Jain', 'Ritu Jain',   '7067514988', '7067514988', 'Bhopal',   '462001', '45 Arera Colony, Bhopal', '',                 '',                  'Teacher 1B', 'शिक्षक 1B'],
 ];
 
 const STUDENT_FILTERS = [
