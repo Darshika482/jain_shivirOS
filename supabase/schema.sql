@@ -323,3 +323,51 @@ alter table volunteers add column if not exists responsibilities    text[];
 alter table transactions add column if not exists coin_count integer default 0;
 alter table transactions add column if not exists type       text;
 alter table transactions add column if not exists notes      text;
+
+-- events: ensure all columns exist (table may pre-date these additions)
+create table if not exists events (
+  id                text primary key,
+  name              text not null,
+  time_slot         text,
+  event_type        text,
+  applicable_gender text default 'all',
+  coin_pool_boys    integer default 0,
+  coin_pool_girls   integer default 0,
+  points_per_coin   integer default 5,
+  responsible_role  text,
+  notes             text,
+  is_active         boolean default true,
+  sort_order        integer default 0
+);
+alter table events disable row level security;
+alter table events add column if not exists event_type        text;
+alter table events add column if not exists applicable_gender text;
+alter table events add column if not exists coin_pool_boys    integer default 0;
+alter table events add column if not exists coin_pool_girls   integer default 0;
+alter table events add column if not exists points_per_coin   integer default 5;
+alter table events add column if not exists responsible_role  text;
+alter table events add column if not exists notes             text;
+alter table events add column if not exists is_active         boolean default true;
+alter table events add column if not exists sort_order        integer default 0;
+
+-- event_responsibilities: ensure table and all columns exist
+create table if not exists event_responsibilities (
+  id                  text primary key,
+  event_id            text references events(id) on delete cascade,
+  responsibility_text text,
+  applies_to_role     text,
+  sort_order          integer default 0
+);
+alter table event_responsibilities disable row level security;
+alter table event_responsibilities add column if not exists responsibility_text text;
+alter table event_responsibilities add column if not exists applies_to_role     text;
+alter table event_responsibilities add column if not exists sort_order          integer default 0;
+
+-- mentor_event_assignments: ensure table exists
+create table if not exists mentor_event_assignments (
+  id           text primary key,
+  volunteer_id text references volunteers(id) on delete cascade,
+  event_id     text references events(id)     on delete cascade
+);
+alter table mentor_event_assignments disable row level security;
+alter table transactions add column if not exists notes      text;
