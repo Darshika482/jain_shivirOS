@@ -5,7 +5,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import Papa from 'papaparse';
 import { getTeacherNameForClass } from '../../lib/classTeachers.js';
 
-const EMPTY_STUDENT = { roll_no: '', name: '', name_hi: '', mobile: '', gender: '', batch: '', class: '', room_no: '', group: '', group_hi: '', parent_name: '', mother_name: '', age: '', reg_id: '' };
+const EMPTY_STUDENT = { roll_no: '', name: '', name_hi: '', mobile: '', gender: '', batch: '', class: '', room_no: '', group: '', group_hi: '', parent_name: '', mother_name: '', age: '', reg_id: '', city: '', pin_code: '', address: '', pathshala: '', achievements: '' };
 
 const BATCH_CLASSES = {
   'Bhag-1': ['1A', '1B', '1C', '1D', '1E', '1F', '1G', '1H'],
@@ -14,11 +14,11 @@ const BATCH_CLASSES = {
   'Bhag-4': ['4A'],
 };
 
-const CSV_HEADERS = ['Roll Number', 'Reg ID', 'Child Name', 'Gender', 'Age', 'DOB', 'Allotted Book', 'Father Name', 'Mother Name', 'Mobile', 'WhatsApp', 'Health Issue', 'Health Detail', 'Pathshala', 'Prev Shivir'];
+const CSV_HEADERS = ['Roll Number', 'Reg ID', 'Child Name', 'Gender', 'Age', 'DOB', 'Allotted Book', 'Father Name', 'Mother Name', 'Mobile', 'City', 'Pin Code', 'Address', 'Pathshala', 'Achievements'];
 
 const TEMPLATE_ROWS = [
-  ['B001', 'JBSSS-2026-XXXXX', 'Arham Jain', 'Boy', '9', '2016-06-26', 'Bhag-1', 'Vikram Jain', 'Preeti Jain', '9179105875', '9179105875', 'No', '', 'Regular', 'No'],
-  ['G001', 'JBSSS-2026-YYYYY', 'Aarvi Jain', 'Girl', '9', '2016-07-03', 'Bhag-1', 'Sachin Jain', 'Ritu Jain', '7067514988', '7067514988', 'No', '', 'Regular', 'No'],
+  ['B001', 'CAMP-2026-XXXXX', 'Arham Jain', 'Boy', '9', '2016-06-26', 'Bhag-1', 'Vikram Jain', 'Preeti Jain', '9179105875', 'Indore', '452001', '12 MG Road, Indore', 'Indore Pathshala', 'State Quiz Winner'],
+  ['G001', 'CAMP-2026-YYYYY', 'Aarvi Jain', 'Girl', '9', '2016-07-03', 'Bhag-1', 'Sachin Jain', 'Ritu Jain', '7067514988', 'Bhopal', '462001', '45 Arera Colony, Bhopal', '', ''],
 ];
 
 const STUDENT_FILTERS = [
@@ -396,16 +396,20 @@ export default function AdminStudents() {
             </div>
             <div className="px-6 py-4 grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { key: 'roll_no',     label: 'Roll No.',             required: true  },
-                { key: 'name',        label: 'Name (English)',        required: true  },
-                { key: 'name_hi',     label: 'नाम (हिंदी)',           required: false },
-                { key: 'mobile',      label: 'Mobile',                required: false },
-                { key: 'age',         label: 'Age',                   required: false },
-                { key: 'group',       label: 'Class Teacher',         required: false },
-                { key: 'group_hi',    label: 'Class Teacher (Hindi)', required: false },
-                { key: 'parent_name', label: 'Father Name',           required: false },
-                { key: 'mother_name', label: 'Mother Name',           required: false },
-                { key: 'reg_id',      label: 'Reg ID',                required: false },
+                { key: 'roll_no',      label: 'Roll No.',             required: true  },
+                { key: 'name',         label: 'Name (English)',        required: true  },
+                { key: 'name_hi',      label: 'नाम (हिंदी)',           required: false },
+                { key: 'mobile',       label: 'Mobile',                required: false },
+                { key: 'age',          label: 'Age',                   required: false },
+                { key: 'group',        label: 'Class Teacher',         required: false },
+                { key: 'group_hi',     label: 'Class Teacher (Hindi)', required: false },
+                { key: 'parent_name',  label: 'Father Name',           required: false },
+                { key: 'mother_name',  label: 'Mother Name',           required: false },
+                { key: 'reg_id',       label: 'Reg ID',                required: false },
+                { key: 'city',         label: 'City',                  required: false },
+                { key: 'pin_code',     label: 'Pin Code',              required: false },
+                { key: 'pathshala',    label: 'Pathshala Name',        required: false },
+                { key: 'achievements', label: 'Achievements',          required: false },
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -414,6 +418,7 @@ export default function AdminStudents() {
                   <input
                     className={`input-field ${errors[f.key] ? 'border-red-400' : ''}`}
                     value={form[f.key]}
+                    placeholder={f.key === 'pathshala' ? 'Leave blank if not attending' : f.key === 'achievements' ? 'e.g. State Quiz Winner' : ''}
                     onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
                   />
                   {errors[f.key] && <p className="text-red-500 text-xs mt-1">{errors[f.key]}</p>}
@@ -484,6 +489,17 @@ export default function AdminStudents() {
                   placeholder="e.g. D1 or F3"
                   value={form.room_no}
                   onChange={e => setForm(p => ({ ...p, room_no: e.target.value.toUpperCase() }))}
+                />
+              </div>
+
+              {/* Address — full width */}
+              <div className="col-span-2 md:col-span-3">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Address</label>
+                <input
+                  className="input-field"
+                  placeholder="House / Street / Area"
+                  value={form.address}
+                  onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                 />
               </div>
             </div>

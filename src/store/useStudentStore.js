@@ -228,9 +228,6 @@ export const useStudentStore = create(
 
       importFromCSV: async (rows) => {
         const newStudents = rows.map((row, i) => {
-          const healthIssue = row['Health Issue'] || row.health_issue || '';
-          const prevShivir = row['Prev Shivir'] || row.prev_shivir || '';
-          const kitGiven = row['Kit Given'] || row.kit_given || '';
           const age = row.Age || row.age || '';
           return {
             id: `csv_${Date.now()}_${i}`,
@@ -245,16 +242,15 @@ export const useStudentStore = create(
             parent_name: row['Father Name'] || row['Parent Name'] || row.parent_name || '',
             mother_name: row['Mother Name'] || row.mother_name || '',
             city: row.City || row.city || '',
+            pin_code: row['Pin Code'] || row['Pincode'] || row.pin_code || '',
+            address: row.Address || row.address || '',
+            pathshala: row.Pathshala || row.pathshala || '',
+            achievements: row.Achievements || row.achievements || '',
             reg_id: row['Reg ID'] || row.reg_id || '',
             gender: row.Gender || row.gender || '',
             age: age ? (parseInt(age) || null) : null,
             dob: row.DOB || row.dob || null,
             whatsapp: row.WhatsApp || row.whatsapp || '',
-            health_issue: healthIssue.toLowerCase() === 'yes',
-            health_detail: row['Health Detail'] || row.health_detail || '',
-            pathshala: row.Pathshala || row.pathshala || '',
-            prev_shivir: prevShivir.toLowerCase() === 'yes',
-            kit_given: kitGiven.toLowerCase() === 'yes',
             total_points: 0,
             day_points: [0, 0, 0, 0, 0, 0, 0],
             checked_in: false,

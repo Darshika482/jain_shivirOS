@@ -35,6 +35,9 @@ create table if not exists students (
   kit_given       boolean default false,
   allotted_book   text,
   room_no         text,
+  address         text,
+  pin_code        text,
+  achievements    text,
   total_points    integer default 0,
   day_points      integer[] default array[0,0,0,0,0,0],
   checked_in      boolean default false,
@@ -302,6 +305,9 @@ alter table students add column if not exists allotted_book   text;
 alter table students add column if not exists room_no         text;
 alter table students add column if not exists group_hi        text;
 alter table students add column if not exists checked_in_at   timestamptz;
+alter table students add column if not exists address         text;
+alter table students add column if not exists pin_code        text;
+alter table students add column if not exists achievements    text;
 
 -- volunteers: columns added after initial creation
 alter table volunteers add column if not exists name_hi             text;
