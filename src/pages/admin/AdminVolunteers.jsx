@@ -234,8 +234,6 @@ export default function AdminVolunteers() {
     };
   });
 
-  // All duty areas: DB-synced first, then local custom ones
-  const allDutyAreas = [...dbDutyAreas, ...dutyAreas];
   const [view, setView] = useState('list'); // 'list' | 'board'
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -271,6 +269,8 @@ export default function AdminVolunteers() {
       return DEFAULT_DUTY_AREAS;
     }
   });
+  // All duty areas: DB-synced first, then local custom ones
+  const allDutyAreas = [...dbDutyAreas, ...dutyAreas];
   const [dutyModalOpen, setDutyModalOpen] = useState(false);
   const [editingDutyKey, setEditingDutyKey] = useState('');
   const [dutyForm, setDutyForm] = useState({
