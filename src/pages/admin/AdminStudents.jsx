@@ -1,18 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudentStore } from '../../store/useStudentStore.js';
+import { useConfigStore, DEFAULT_BATCH_CLASSES } from '../../store/useConfigStore.js';
 import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import Papa from 'papaparse';
 import { getTeacherNameForClass } from '../../lib/classTeachers.js';
 
 const EMPTY_STUDENT = { roll_no: '', name: '', mobile: '', gender: '', batch: '', class: '', room_no: '', group: '', parent_name: '', mother_name: '', age: '', reg_id: '', city: '', pin_code: '', address: '', pathshala: '', achievements: '' };
-
-const BATCH_CLASSES = {
-  'Bhag-1': ['1A', '1B', '1C', '1D', '1E', '1F', '1G', '1H'],
-  'Bhag-2': ['2A', '2B', '2C'],
-  'Bhag-3': ['3A', '3B'],
-  'Bhag-4': ['4A'],
-};
 
 const CSV_HEADERS = [
   'Roll Number', 'Reg ID', 'Child Name',
@@ -68,6 +62,7 @@ function downloadCSV(filename, csvContent) {
 export default function AdminStudents() {
   const { t, i18n } = useTranslation();
   const { students, addStudent, updateStudent, deleteStudent, importFromCSV } = useStudentStore();
+  const BATCH_CLASSES = useConfigStore(s => s.batchClasses) || DEFAULT_BATCH_CLASSES;
   const isHindi = i18n.language === 'hi';
 
   const [searchQ, setSearchQ] = useState('');

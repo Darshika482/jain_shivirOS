@@ -1,9 +1,10 @@
-  import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase.js';
 import { useVolunteerStore } from '../../store/useVolunteerStore.js';
 import { useStudentStore } from '../../store/useStudentStore.js';
+import { useConfigStore, DEFAULT_BATCH_CLASSES } from '../../store/useConfigStore.js';
 import { buildWhatsAppLink, getLoginTarget, normalizePhone } from '../../lib/whatsapp.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -954,7 +955,145 @@ function PinsSection({ volunteers }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
+// ── Manage Classes ─────────────────────────────────────────────────────────────
+function ClassesSection() {
+  const storedBatchClasses = useConfigStore(s => s.batchClasses);
+  const saveBatchClasses   = useConfigStore(s => s.saveBatchClasses);
+  const [batches, setBatches] = useState(() => storedBatchClasses || DEFAULT_BATCH_CLASSES);
+  const [newBatchName, setNewBatchName] = useState('');
+  const [addingClass, setAddingClass] = useState({}); // { [batchKey]: inputValue }
+
+  const save = (next) => { setBatches(next); saveBatchClasses(next); };
+
+  const addClass = (batch) => {
+    const code = (addingClass[batch] || '').trim().toUpperCase();
+    if (!code) return;
+    if ((batches[batch] || []).includes(code)) { toast.error(`${code} already exists in ${batch}.`); return; }
+    save({ ...batches, [batch]: [...(batches[batch] || []), code] });
+    setAddingClass(p => ({ ...p, [batch]: '' }));
+    toast.success(`${code} added to ${batch}.`);
+  };
+
+  const removeClass = (batch, cls) => {
+    const next = (batches[batch] || []).filter(c => c !== cls);
+    save({ ...batches, [batch]: next });
+  };
+
+  const addBatch = () => {
+    const name = newBatchName.trim();
+    if (!name) return;
+    if (batches[name]) { toast.error('Batch already exists.'); return; }
+    save({ ...batches, [name]: [] });
+    setNewBatchName('');
+    toast.success(`Batch "${name}" added.`);
+  };
+
+  const removeBatch = (batch) => {
+    if (!window.confirm(`Remove batch "${batch}" and all its classes? Existing student records are not affected.`)) return;
+    const next = { ...batches };
+    delete next[batch];
+    save(next);
+    toast.success(`Batch "${batch}" removed.`);
+  };
+
+  const renameBatch = (oldName, newName) => {
+    newName = newName.trim();
+    if (!newName || newName === oldName) return;
+    if (batches[newName]) { toast.error('A batch with that name already exists.'); return; }
+    const next = {};
+    for (const [k, v] of Object.entries(batches)) {
+      next[k === oldName ? newName : k] = v;
+    }
+    save(next);
+    toast.success(`Renamed to "${newName}".`);
+  };
+
+  const resetToDefault = () => {
+    if (!window.confirm('Reset to the default class structure? Your custom classes will be lost.')) return;
+    save(DEFAULT_BATCH_CLASSES);
+    toast.success('Classes reset to defaults.');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          Add or remove batches and class codes. Changes apply immediately to the student form and CSV template.
+          Existing student records are <strong>not</strong> affected.
+        </p>
+        <button onClick={resetToDefault} className="text-xs text-gray-400 hover:text-red-500 shrink-0 ml-4">Reset to default</button>
+      </div>
+
+      {Object.entries(batches).map(([batch, classes]) => (
+        <div key={batch} className="bg-white border border-gray-200 rounded-2xl p-4">
+          {/* Batch header */}
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              className="font-semibold text-forest-700 text-sm bg-transparent border-b border-dashed border-gray-300 focus:outline-none focus:border-forest-500 w-32"
+              defaultValue={batch}
+              onBlur={e => renameBatch(batch, e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
+              title="Click to rename batch"
+            />
+            <span className="text-xs text-gray-400">({classes.length} classes)</span>
+            <button
+              onClick={() => removeBatch(batch)}
+              className="ml-auto text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"
+            >
+              Remove batch
+            </button>
+          </div>
+
+          {/* Class chips */}
+          <div className="flex flex-wrap gap-2">
+            {classes.map(cls => (
+              <span key={cls} className="flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-lg text-sm font-mono text-gray-700">
+                {cls}
+                <button
+                  onClick={() => removeClass(batch, cls)}
+                  className="text-gray-400 hover:text-red-500 leading-none ml-0.5"
+                  title={`Remove ${cls}`}
+                >×</button>
+              </span>
+            ))}
+
+            {/* Inline add field */}
+            <div className="flex items-center gap-1">
+              <input
+                className="w-16 border-2 border-dashed border-gray-300 rounded-lg px-2 py-1 text-sm font-mono text-center focus:outline-none focus:border-forest-500 uppercase"
+                placeholder="+ 1A"
+                value={addingClass[batch] || ''}
+                onChange={e => setAddingClass(p => ({ ...p, [batch]: e.target.value.toUpperCase() }))}
+                onKeyDown={e => { if (e.key === 'Enter') addClass(batch); }}
+              />
+              <button
+                onClick={() => addClass(batch)}
+                className="text-xs px-2 py-1 bg-forest-700 text-white rounded-lg hover:bg-forest-800"
+              >Add</button>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* Add new batch */}
+      <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl p-4 flex items-center gap-2">
+        <input
+          className="border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-forest-500 flex-1 max-w-xs"
+          placeholder="New batch name, e.g. Bhag-5"
+          value={newBatchName}
+          onChange={e => setNewBatchName(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') addBatch(); }}
+        />
+        <button onClick={addBatch} className="px-4 py-2 bg-forest-700 text-white rounded-xl text-sm font-semibold hover:bg-forest-800">
+          + Add Batch
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const TABS = [
+  { key: 'classes',  icon: '🏫', label: 'Classes' },
   { key: 'events',   icon: '📅', label: 'Events' },
   { key: 'mentors',  icon: '👥', label: 'Mentors' },
   { key: 'matrix',   icon: '⊞',  label: 'Matrix' },
@@ -997,6 +1136,7 @@ export default function AdminOperations() {
       </div>
 
       {/* Content */}
+      {activeTab === 'classes' && <ClassesSection />}
       {activeTab === 'events'  && <EventsSection events={events} setEvents={setEvents} responsibilities={responsibilities} setResps={setResps} />}
       {activeTab === 'mentors' && <MentorsSection volunteers={volunteers} events={events} assignments={assignments} setAssignments={setAssignments} />}
       {activeTab === 'matrix'  && <MatrixSection volunteers={volunteers} events={events} assignments={assignments} setAssignments={setAssignments} />}
