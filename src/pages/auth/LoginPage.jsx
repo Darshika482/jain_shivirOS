@@ -143,10 +143,6 @@ export default function LoginPage() {
                   onChange={e => setPin(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                 />
-                {/* PIN hint for demo */}
-                <p className="text-xs text-gray-400 mt-2 text-center">
-                  {selectedRole.key === 'coinkeeper' ? 'PIN: 0000' : 'Enter your assigned PIN'}
-                </p>
               </div>
             ) : (
               <div className="mb-4">
@@ -159,7 +155,6 @@ export default function LoginPage() {
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                 />
-                <p className="text-xs text-gray-400 mt-2 text-center">Demo password: shivir2024</p>
               </div>
             )}
 
