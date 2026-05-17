@@ -238,7 +238,6 @@ export const useStudentStore = create(
             batch: row['Allotted Book'] || row.Batch || row.batch || '',
             room_no: (row['Room No.'] || row['Room No'] || row['Room Number'] || row.room_no || '').toUpperCase(),
             group: row['Class Teacher'] || row.Group || row.group || '',
-            group_hi: row['Class Teacher (Hindi)'] || row['Group Hindi'] || row.group_hi || '',
             parent_name: row['Father Name'] || row['Parent Name'] || row.parent_name || '',
             mother_name: row['Mother Name'] || row.mother_name || '',
             city: row.City || row.city || '',
