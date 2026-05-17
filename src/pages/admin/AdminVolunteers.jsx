@@ -616,6 +616,10 @@ export default function AdminVolunteers() {
     if (!form.name.trim()) e.name = 'Name is required';
     if (!form.pin.trim() || form.pin.length < 4) e.pin = 'PIN must be at least 4 digits';
     if (!form.roles || form.roles.length === 0) e.roles = 'At least one role is required';
+    if (form.pin.trim().length >= 4) {
+      const duplicate = volunteers.find(v => v.pin === form.pin.trim() && v.id !== editingId);
+      if (duplicate) e.pin = `PIN already used by ${duplicate.name}. Each mentor must have a unique PIN.`;
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
