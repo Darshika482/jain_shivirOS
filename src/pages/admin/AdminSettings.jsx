@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { useConfigStore } from '../../store/useConfigStore.js';
+import schemaSQL from '../../../supabase/schema.sql?raw';
+import addPointsRPC from '../../../supabase/add_points_rpc.sql?raw';
+
+const FULL_SQL = schemaSQL + '\n\n' + addPointsRPC;
 
 function Section({ title, children }) {
   return (
@@ -49,6 +53,7 @@ export default function AdminSettings() {
   const [newUrl, setNewUrl] = useState('');
   const [newKey, setNewKey] = useState('');
   const [dbMsg, setDbMsg] = useState(null);
+  const [schemaCopied, setSchemaCopied] = useState(false);
 
   const saveCamp = () => {
     const days = startDate && endDate
@@ -63,7 +68,7 @@ export default function AdminSettings() {
     setPwdMsg(null);
     const stored = localStorage.getItem('shiviros-config');
     const adminPwd = stored ? JSON.parse(stored)?.state?.adminPassword : null;
-    const actual = adminPwd || import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
+    const actual = adminPwd || import.meta.env.VITE_ADMIN_PASSWORD || 'darshika';
     if (currentPwd !== actual) { setPwdMsg({ ok: false, text: 'Current password is incorrect.' }); return; }
     if (newPwd.length < 6) { setPwdMsg({ ok: false, text: 'New password must be at least 6 characters.' }); return; }
     if (newPwd !== confirmPwd) { setPwdMsg({ ok: false, text: 'Passwords do not match.' }); return; }
@@ -92,6 +97,25 @@ export default function AdminSettings() {
     setNewUrl(''); setNewKey('');
     setDbMsg({ ok: true, text: 'Database config updated. Reload the app to reconnect.' });
     setTimeout(() => setDbMsg(null), 4000);
+  };
+
+  const handleDownloadSchema = () => {
+    const blob = new Blob([FULL_SQL], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'jain-shiviros-schema.sql';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const handleCopySchema = async () => {
+    try {
+      await navigator.clipboard.writeText(FULL_SQL);
+      setSchemaCopied(true);
+      setTimeout(() => setSchemaCopied(false), 2000);
+    } catch {
+      setSchemaCopied(false);
+    }
   };
 
   const maskedUrl = config.supabaseUrl
@@ -210,6 +234,55 @@ export default function AdminSettings() {
         <button onClick={saveDatabase} className="px-5 py-2 rounded-xl text-sm font-semibold bg-forest-700 text-white hover:bg-forest-800">
           Update Database
         </button>
+      </Section>
+
+      {/* Schema Download */}
+      <Section title="Database Schema">
+        <p className="text-sm text-gray-600">
+          Download or copy the full SQL schema to create all required tables in your Supabase project.
+          Paste it into the <strong>Supabase SQL Editor</strong> and click Run.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleCopySchema}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold border-2 transition-all
+              ${schemaCopied ? 'bg-green-50 border-green-400 text-green-700' : 'bg-white border-gray-300 text-gray-700 hover:border-forest-500'}`}
+          >
+            {schemaCopied ? '✓ Copied!' : '📋 Copy SQL'}
+          </button>
+          <button
+            onClick={handleDownloadSchema}
+            className="px-4 py-2 rounded-xl text-sm font-semibold border-2 border-gray-300 bg-white text-gray-700 hover:border-forest-500 transition-all"
+          >
+            ⬇ Download SQL
+          </button>
+          {config.supabaseUrl && (() => {
+            const m = config.supabaseUrl.match(/https:\/\/([^.]+)\.supabase\.co/);
+            if (!m) return null;
+            return (
+              <a
+                href={`https://supabase.com/dashboard/project/${m[1]}/sql/new`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 rounded-xl text-sm font-semibold border-2 border-gray-300 bg-white text-gray-700 hover:border-forest-500 transition-all"
+              >
+                SQL Editor ↗
+              </a>
+            );
+          })()}
+        </div>
+        <div className="text-xs text-gray-400 mt-1">File: <span className="font-mono">jain-shiviros-schema.sql</span></div>
+      </Section>
+
+      {/* Setup Wizard */}
+      <Section title="Setup Wizard">
+        <p className="text-sm text-gray-600">Re-open the guided setup wizard to update your Supabase connection or reconfigure the camp from scratch.</p>
+        <a
+          href="/setup"
+          className="inline-block px-5 py-2 rounded-xl text-sm font-semibold bg-forest-700 text-white hover:bg-forest-800"
+        >
+          Open Setup Wizard
+        </a>
       </Section>
 
       {/* Danger Zone */}
