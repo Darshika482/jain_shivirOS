@@ -14,8 +14,8 @@ function getCoinkeeperPin() {
   try {
     const raw = localStorage.getItem('shiviros-config');
     const stored = raw ? JSON.parse(raw)?.state : null;
-    return stored?.coinkeeperPin || import.meta.env.VITE_COINKEEPER_PIN || '';
-  } catch { return import.meta.env.VITE_COINKEEPER_PIN || ''; }
+    return stored?.coinkeeperPin || import.meta.env.VITE_COINKEEPER_PIN || null;
+  } catch { return import.meta.env.VITE_COINKEEPER_PIN || null; }
 }
 
 /** @returns {string[]} */
@@ -219,15 +219,14 @@ export const useAuthStore = create(
       },
 
       loginAdmin: (password) => {
-        const expected = getAdminPassword();
-        if (password !== expected) return { success: false, error: 'Wrong password.' };
+        if (password !== getAdminPassword()) return { success: false, error: 'Wrong password.' };
         set({ currentUser: { id: 'admin', name: 'Camp Admin', role: 'Admin' }, role: 'admin' });
         return { success: true };
       },
 
       loginCoinkeeper: (pin) => {
         const expected = getCoinkeeperPin();
-        if (!expected) return { success: false, error: 'Coinkeeper PIN not configured. Complete setup first.' };
+        if (!expected) return { success: false, error: 'Coinkeeper PIN not configured. Ask the admin to set it in Admin → Settings.' };
         if (pin !== expected) return { success: false, error: 'Wrong PIN.' };
         set({ currentUser: { id: 'keeper', name: 'Coin Keeper', role: 'Keeper' }, role: 'coinkeeper' });
         return { success: true };

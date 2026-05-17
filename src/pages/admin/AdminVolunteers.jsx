@@ -123,8 +123,8 @@ function mentorHasDuty(mentor, area) {
 }
 
 const ROLES = ['Activity Coordinator', 'Zone Mentor', 'Class Teacher', 'Collection Mentor', 'Admin'];
-const DEFAULT_SESSION_KEYS = ['1', '2', '3'];
-const DEFAULT_SESSION_LABELS = {
+const DEFAULT_sessionKeys = ['1', '2', '3'];
+const DEFAULT_sessionLabels = {
   '1': 'Session 1 — Morning 1',
   '2': 'Session 2 — Morning 2',
   '3': 'Session 3 — Afternoon',
@@ -150,7 +150,6 @@ function parseSessionClasses(raw, keys = DEFAULT_SESSION_KEYS) {
   if (typeof value === 'string') {
     try { value = JSON.parse(value); } catch { value = null; }
   }
-  // Include both the provided keys and any extra keys already saved in the DB
   const savedKeys = (value && typeof value === 'object' && !Array.isArray(value))
     ? Object.keys(value)
     : [];
@@ -187,29 +186,56 @@ export default function AdminVolunteers() {
   const { schedule } = useScheduleStore();
 
   const [classSessionEvents, setClassSessionEvents] = useState([]);
+  const [dbEvents, setDbEvents] = useState([]);
 
   useEffect(() => {
     supabase
       .from('events')
-      .select('id,name,time_slot,sort_order')
-      .eq('event_type', 'class')
+      .select('id,name,time_slot,event_type,sort_order')
       .eq('is_active', true)
       .order('sort_order')
       .order('name')
-      .then(({ data }) => setClassSessionEvents(data || []));
+      .then(({ data }) => {
+        const all = data || [];
+        setDbEvents(all);
+        setClassSessionEvents(all.filter(e => e.event_type === 'class'));
+      });
   }, []);
 
   const sessionKeys = classSessionEvents.length > 0
     ? classSessionEvents.map((_, i) => String(i + 1))
-    : DEFAULT_SESSION_KEYS;
+    : DEFAULT_sessionKeys;
 
   const sessionLabels = classSessionEvents.length > 0
     ? Object.fromEntries(classSessionEvents.map((ev, i) => [
         String(i + 1),
         ev.time_slot ? `${ev.name} (${ev.time_slot})` : ev.name,
       ]))
-    : DEFAULT_SESSION_LABELS;
+    : DEFAULT_sessionLabels;
 
+  // Duty areas derived from Operations → Events (auto-synced, non-editable on this page)
+  const EVENT_TYPE_BOARD_META = {
+    class:       { emoji: '📚', color: 'bg-sky-50 border-sky-300 text-sky-800' },
+    competition: { emoji: '🏆', color: 'bg-amber-50 border-amber-300 text-amber-800' },
+    activity:    { emoji: '🎯', color: 'bg-violet-50 border-violet-300 text-violet-800' },
+    event:       { emoji: '📅', color: 'bg-green-50 border-green-300 text-green-800' },
+  };
+  const dbDutyAreas = dbEvents.map(ev => {
+    const meta = EVENT_TYPE_BOARD_META[ev.event_type] || { emoji: '📌', color: 'bg-gray-50 border-gray-300 text-gray-800' };
+    const displayLabel = ev.time_slot ? `${ev.name} (${ev.time_slot})` : ev.name;
+    return {
+      key: `db_${ev.id}`,
+      emoji: meta.emoji,
+      label: displayLabel,
+      stdText: `${meta.emoji} ${ev.name}`,
+      color: meta.color,
+      aliases: [ev.name.toLowerCase()],
+      _fromDB: true,
+    };
+  });
+
+  // All duty areas: DB-synced first, then local custom ones
+  const allDutyAreas = [...dbDutyAreas, ...dutyAreas];
   const [view, setView] = useState('list'); // 'list' | 'board'
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -1054,7 +1080,7 @@ export default function AdminVolunteers() {
         <div>
           <div className="flex flex-wrap items-center gap-2 justify-between mb-4">
             <p className="text-sm text-gray-500">
-              Each card shows who is assigned to that duty. Click <strong>Manage</strong> to add or remove mentors.
+              Each card shows who is assigned to that duty. Cards marked <em>via Events</em> sync automatically from Operations → Events. Click <strong>Manage</strong> to assign mentors.
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -1072,51 +1098,67 @@ export default function AdminVolunteers() {
               </button>
             </div>
           </div>
+          {dbDutyAreas.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs text-forest-600 font-semibold mb-2 flex items-center gap-1.5">
+                <span>🔗</span> Synced from Operations → Events
+                <span className="text-gray-400 font-normal">(edit events there to add/remove cards)</span>
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-            {dutyAreas.map(area => {
+            {allDutyAreas.map(area => {
               const assigned = volunteers.filter(v => mentorHasDuty(v, area));
-              const isDropTarget = dragOverDutyKey === area.key && dragDutyKey && dragDutyKey !== area.key;
+              const isDropTarget = !area._fromDB && dragOverDutyKey === area.key && dragDutyKey && dragDutyKey !== area.key;
               return (
                 <div
                   key={area.key}
-                  draggable
-                  onDragStart={(e) => onDutyDragStart(area.key, e)}
-                  onDragOver={(e) => onDutyDragOver(area.key, e)}
-                  onDrop={(e) => onDutyDrop(area.key, e)}
-                  onDragEnd={onDutyDragEnd}
-                  className={`rounded-2xl border-2 p-4 flex flex-col gap-2 cursor-grab active:cursor-grabbing transition-shadow ${area.color} ${isDropTarget ? 'ring-2 ring-saffron-400 shadow-lg' : ''}`}
+                  draggable={!area._fromDB}
+                  onDragStart={area._fromDB ? undefined : (e) => onDutyDragStart(area.key, e)}
+                  onDragOver={area._fromDB ? undefined : (e) => onDutyDragOver(area.key, e)}
+                  onDrop={area._fromDB ? undefined : (e) => onDutyDrop(area.key, e)}
+                  onDragEnd={area._fromDB ? undefined : onDutyDragEnd}
+                  className={`rounded-2xl border-2 p-4 flex flex-col gap-2 transition-shadow ${area._fromDB ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'} ${area.color} ${isDropTarget ? 'ring-2 ring-saffron-400 shadow-lg' : ''}`}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-400" title="Drag to reorder" aria-hidden="true">
-                        <svg viewBox="0 0 20 20" className="h-4 w-4 fill-current">
-                          <circle cx="6" cy="5" r="1.3" />
-                          <circle cx="6" cy="10" r="1.3" />
-                          <circle cx="6" cy="15" r="1.3" />
-                          <circle cx="12" cy="5" r="1.3" />
-                          <circle cx="12" cy="10" r="1.3" />
-                          <circle cx="12" cy="15" r="1.3" />
-                        </svg>
-                      </span>
-                      <span className="text-xl">{area.emoji}</span>
-                      <span className="font-bold text-sm leading-tight">{area.label}</span>
+                    <div className="flex items-center gap-2 min-w-0">
+                      {!area._fromDB && (
+                        <span className="text-slate-400 shrink-0" title="Drag to reorder" aria-hidden="true">
+                          <svg viewBox="0 0 20 20" className="h-4 w-4 fill-current">
+                            <circle cx="6" cy="5" r="1.3" />
+                            <circle cx="6" cy="10" r="1.3" />
+                            <circle cx="6" cy="15" r="1.3" />
+                            <circle cx="12" cy="5" r="1.3" />
+                            <circle cx="12" cy="10" r="1.3" />
+                            <circle cx="12" cy="15" r="1.3" />
+                          </svg>
+                        </span>
+                      )}
+                      <span className="text-xl shrink-0">{area.emoji}</span>
+                      <span className="font-bold text-sm leading-tight truncate">{area.label}</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <BoardActionIconButton title="Delete duty card" onClick={() => setDeleteDuty(area)} tone="danger">
-                        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
-                          <path d="M7.5 2.5h5l.5 1.5H16a1 1 0 1 1 0 2h-.6l-.7 9.2A2 2 0 0 1 12.7 17H7.3a2 2 0 0 1-2-1.8L4.6 6H4a1 1 0 1 1 0-2h3l.5-1.5Zm-1 3.5.7 9h5.6l.7-9H6.5Zm2.2 1.8a.9.9 0 0 1 .9.9v4.6a.9.9 0 1 1-1.8 0V8.7a.9.9 0 0 1 .9-.9Zm2.6 0a.9.9 0 0 1 .9.9v4.6a.9.9 0 1 1-1.8 0V8.7a.9.9 0 0 1 .9-.9Z" />
-                        </svg>
-                      </BoardActionIconButton>
-                      <BoardActionIconButton title="Duplicate duty card" onClick={() => duplicateDutyArea(area)}>
-                        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
-                          <path d="M6 3.5A1.5 1.5 0 0 1 7.5 2h7A1.5 1.5 0 0 1 16 3.5v9A1.5 1.5 0 0 1 14.5 14h-7A1.5 1.5 0 0 1 6 12.5v-9Zm-2 4A1.5 1.5 0 0 1 5.5 6H5v6.5A3.5 3.5 0 0 0 8.5 16H13v.5a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 4 16.5v-9Z" />
-                        </svg>
-                      </BoardActionIconButton>
-                      <BoardActionIconButton title="Edit duty card" onClick={() => openEditDutyModal(area)}>
-                        <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
-                          <path d="M14.7 2.3a2 2 0 0 1 2.8 2.8l-8.9 8.9a2 2 0 0 1-.8.5l-3 .9a.8.8 0 0 1-1-1l.9-3a2 2 0 0 1 .5-.8l8.9-8.9Zm1.4 2.1a.8.8 0 0 0-1.2-1.1L13.9 4.3 15 5.4l1.1-1Zm-2.3 2.2L6.1 14.3l-1.3.4.4-1.3 7.7-7.7.9.9Z" />
-                        </svg>
-                      </BoardActionIconButton>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {area._fromDB ? (
+                        <span className="text-[10px] font-semibold bg-white/60 rounded-full px-2 py-0.5 text-gray-500">via Events</span>
+                      ) : (
+                        <>
+                          <BoardActionIconButton title="Delete duty card" onClick={() => setDeleteDuty(area)} tone="danger">
+                            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+                              <path d="M7.5 2.5h5l.5 1.5H16a1 1 0 1 1 0 2h-.6l-.7 9.2A2 2 0 0 1 12.7 17H7.3a2 2 0 0 1-2-1.8L4.6 6H4a1 1 0 1 1 0-2h3l.5-1.5Zm-1 3.5.7 9h5.6l.7-9H6.5Zm2.2 1.8a.9.9 0 0 1 .9.9v4.6a.9.9 0 1 1-1.8 0V8.7a.9.9 0 0 1 .9-.9Zm2.6 0a.9.9 0 0 1 .9.9v4.6a.9.9 0 1 1-1.8 0V8.7a.9.9 0 0 1 .9-.9Z" />
+                            </svg>
+                          </BoardActionIconButton>
+                          <BoardActionIconButton title="Duplicate duty card" onClick={() => duplicateDutyArea(area)}>
+                            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+                              <path d="M6 3.5A1.5 1.5 0 0 1 7.5 2h7A1.5 1.5 0 0 1 16 3.5v9A1.5 1.5 0 0 1 14.5 14h-7A1.5 1.5 0 0 1 6 12.5v-9Zm-2 4A1.5 1.5 0 0 1 5.5 6H5v6.5A3.5 3.5 0 0 0 8.5 16H13v.5a1.5 1.5 0 0 1-1.5 1.5h-6A1.5 1.5 0 0 1 4 16.5v-9Z" />
+                            </svg>
+                          </BoardActionIconButton>
+                          <BoardActionIconButton title="Edit duty card" onClick={() => openEditDutyModal(area)}>
+                            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 fill-current" aria-hidden="true">
+                              <path d="M14.7 2.3a2 2 0 0 1 2.8 2.8l-8.9 8.9a2 2 0 0 1-.8.5l-3 .9a.8.8 0 0 1-1-1l.9-3a2 2 0 0 1 .5-.8l8.9-8.9Zm1.4 2.1a.8.8 0 0 0-1.2-1.1L13.9 4.3 15 5.4l1.1-1Zm-2.3 2.2L6.1 14.3l-1.3.4.4-1.3 7.7-7.7.9.9Z" />
+                            </svg>
+                          </BoardActionIconButton>
+                        </>
+                      )}
                       <span className="text-xs font-bold bg-white/60 rounded-full px-2 py-0.5">{assigned.length}</span>
                     </div>
                   </div>
@@ -1146,7 +1188,7 @@ export default function AdminVolunteers() {
                     </svg>
                     Manage
                   </button>
-                  <div className="text-[10px] opacity-60 text-center">Drag to reorder</div>
+                  {!area._fromDB && <div className="text-[10px] opacity-60 text-center">Drag to reorder</div>}
                 </div>
               );
             })}

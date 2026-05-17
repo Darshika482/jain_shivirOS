@@ -79,33 +79,17 @@ function useOperationsData() {
 
 // ── Events Tab ─────────────────────────────────────────────────────────────────
 
-function parseTimeSlot(slot) {
-  if (!slot) return { start: '', end: '' };
-  const m = String(slot).match(/^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})/);
-  if (m) return { start: m[1], end: m[2] };
-  return { start: slot, end: '' };
-}
-
 function EventForm({ initial, onSave, onCancel }) {
-  const parsed = parseTimeSlot(initial?.time_slot);
   const [form, setForm] = useState({ ...EMPTY_EVENT, ...initial });
-  const [timeStart, setTimeStart] = useState(parsed.start);
-  const [timeEnd, setTimeEnd]     = useState(parsed.end);
   const [saving, setSaving] = useState(false);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  function buildTimeSlot(start, end) {
-    if (start && end) return `${start}–${end}`;
-    return start || '';
-  }
-
   async function handleSave() {
     if (!form.name.trim()) { toast.error('Event name is required.'); return; }
-    const { id: _id, ...payload } = { ...form, time_slot: buildTimeSlot(timeStart, timeEnd) };
     setSaving(true);
     try {
-      await onSave(payload);
+      await onSave(form);
     } finally {
       setSaving(false);
     }
@@ -120,27 +104,12 @@ function EventForm({ initial, onSave, onCancel }) {
         </div>
         <div>
           <label className="text-xs text-gray-500 font-medium">Time Slot</label>
-          <div className="flex items-center gap-2 mt-1">
-            <input
-              type="time"
-              className="form-input flex-1"
-              value={timeStart}
-              onChange={e => setTimeStart(e.target.value)}
-            />
-            <span className="text-gray-400 text-sm flex-shrink-0">to</span>
-            <input
-              type="time"
-              className="form-input flex-1"
-              value={timeEnd}
-              onChange={e => setTimeEnd(e.target.value)}
-            />
-          </div>
+          <input className="form-input mt-1" value={form.time_slot} onChange={e => set('time_slot', e.target.value)} placeholder="e.g. 5:15–6:00 AM" />
         </div>
         <div>
           <label className="text-xs text-gray-500 font-medium">Event Type</label>
           <select className="form-input mt-1" value={form.event_type} onChange={e => set('event_type', e.target.value)}>
             <option value="daily">Daily</option>
-            <option value="class">Class Session</option>
             <option value="one-time">One-Time</option>
             <option value="two-day">Two-Day</option>
           </select>
@@ -236,14 +205,14 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
   async function saveEvent(form) {
     if (editingId) {
       const { error } = await supabase.from('events').update(form).eq('id', editingId);
-      if (error) { toast.error(`Save failed: ${error.message}`); return; }
+      if (error) { toast.error('Save failed.'); return; }
       setEvents(ev => ev.map(e => e.id === editingId ? { ...e, ...form } : e));
       toast.success('Event updated.');
       setEditingId(null);
     } else {
       const id = makeId('ev');
       const { error } = await supabase.from('events').insert({ ...form, id });
-      if (error) { toast.error(`Save failed: ${error.message}`); return; }
+      if (error) { toast.error('Save failed.'); return; }
       setEvents(ev => [...ev, { ...form, id }]);
       toast.success('Event added.');
       setShowAdd(false);
@@ -268,17 +237,16 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
 
   async function saveResp(form) {
     if (editRespId) {
-      const { id: _id, ...payload } = form;
-      const { error } = await supabase.from('event_responsibilities').update(payload).eq('id', editRespId);
-      if (error) { toast.error(`Save failed: ${error.message}`); return; }
-      setResps(rs => rs.map(r => r.id === editRespId ? { ...r, ...payload } : r));
+      const { error } = await supabase.from('event_responsibilities').update(form).eq('id', editRespId);
+      if (error) { toast.error('Save failed.'); return; }
+      setResps(rs => rs.map(r => r.id === editRespId ? { ...r, ...form } : r));
       toast.success('Responsibility updated.');
       setEditRespId(null);
     } else if (addRespFor) {
       const id = makeId('er');
       const payload = { ...form, id, event_id: addRespFor, sort_order: responsibilities.filter(r => r.event_id === addRespFor).length + 1 };
       const { error } = await supabase.from('event_responsibilities').insert(payload);
-      if (error) { toast.error(`Save failed: ${error.message}`); return; }
+      if (error) { toast.error('Save failed.'); return; }
       setResps(rs => [...rs, payload]);
       toast.success('Responsibility added.');
       setAddRespFor(null);
@@ -324,19 +292,11 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{ev.responsible_role}</span>
                     </div>
                     {ev.time_slot && <div className="text-xs text-gray-400 mt-0.5">🕐 {ev.time_slot}</div>}
-                    <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      {ev.event_type === 'class'
-                        ? <span className="px-2 py-0.5 rounded-full bg-saffron-100 text-saffron-700 font-semibold">📚 Class Session</span>
-                        : <span>{ev.event_type}</span>
-                      }
-                      <span>· {ev.applicable_gender === 'all' ? 'All' : ev.applicable_gender === 'boys_only' ? 'Boys' : 'Girls'} · Pool: {ev.coin_pool_boys}♂/{ev.coin_pool_girls}♀ coins</span>
+                    <div className="text-xs text-gray-400 mt-0.5">
+                      {ev.event_type} · {ev.applicable_gender === 'all' ? 'All' : ev.applicable_gender === 'boys_only' ? 'Boys' : 'Girls'} · Pool: {ev.coin_pool_boys}♂/{ev.coin_pool_girls}♀ coins
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <button onClick={() => setAddRespFor(addRespFor === ev.id ? null : ev.id)}
-                      className="text-xs px-2.5 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50">
-                      + Duty
-                    </button>
                     <button onClick={() => setExpandedId(isExpanded ? null : ev.id)}
                       className="text-xs px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
                       {isExpanded ? '▲' : `📋 ${evResps.length}`}
@@ -348,13 +308,6 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
                     <button onClick={() => setDeleteConfirm(ev.id)} className="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">🗑</button>
                   </div>
                 </div>
-
-                {/* Inline add-responsibility form */}
-                {addRespFor === ev.id && (
-                  <div className="mt-3">
-                    <ResponsibilityForm eventId={ev.id} onSave={saveResp} onCancel={() => setAddRespFor(null)} />
-                  </div>
-                )}
 
                 {/* Confirm delete */}
                 {deleteConfirm === ev.id && (
@@ -390,6 +343,15 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
                       }
                     </div>
                   ))}
+                  {addRespFor === ev.id
+                    ? <ResponsibilityForm eventId={ev.id} onSave={saveResp} onCancel={() => setAddRespFor(null)} />
+                    : (
+                      <button onClick={() => setAddRespFor(ev.id)}
+                        className="text-xs text-blue-600 border border-blue-200 rounded-lg px-3 py-1.5 hover:bg-blue-50 mt-1">
+                        + Add Responsibility
+                      </button>
+                    )
+                  }
                 </div>
               </div>
             )}

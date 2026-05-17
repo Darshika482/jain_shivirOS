@@ -22,7 +22,10 @@ export default function LoginPage() {
   const { loginVolunteer, loginAdmin, loginCoinkeeper } = useAuthStore();
   const campName = useConfigStore(s => s.campName) || import.meta.env.VITE_CAMP_NAME || t('app.title');
   const campCity = useConfigStore(s => s.campCity) || import.meta.env.VITE_CAMP_CITY || t('app.subtitle');
-  const adminPasswordConfigured = !!(useConfigStore(s => s.adminPassword) || import.meta.env.VITE_ADMIN_PASSWORD);
+
+  const adminPasswordConfigured = !!(() => {
+    try { return JSON.parse(localStorage.getItem('shiviros-config') || '{}').adminPassword; } catch { return false; }
+  })();
 
   const [selectedRole, setSelectedRole] = useState(null);
   const [pin, setPin] = useState('');
@@ -144,6 +147,8 @@ export default function LoginPage() {
                   onChange={e => setPin(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSubmit()}
                 />
+                {/* PIN hint for demo */}
+                <p className="text-xs text-gray-400 mt-2 text-center">Enter your assigned PIN</p>
               </div>
             ) : (
               <div className="mb-4">

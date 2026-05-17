@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { mockSchedule } from '../data/mockSchedule.js';
 
 export const useScheduleStore = create(
   persist(
     (set, get) => ({
-      schedule: {},
+      schedule: mockSchedule,
       selectedDay: 1,
 
       setDay: (day) => set({ selectedDay: day }),
@@ -51,20 +52,16 @@ export const useScheduleStore = create(
     }),
     {
       name: 'shivir-schedule',
-      version: 4,
+      version: 3,
       migrate: (persistedState, version) => {
         if (!persistedState || typeof persistedState !== 'object') return persistedState;
-        if (version >= 4) return persistedState;
-        // Strip mock-seeded base activities (IDs like sch1_d1, sch2_d3, …).
-        // Keep any special/custom activities the admin actually added.
-        const isMockId = (id) => /^sch\d+(_d\d+)?$/.test(String(id || ''));
-        const oldSchedule = persistedState.schedule || {};
-        const cleaned = {};
-        for (const [day, acts] of Object.entries(oldSchedule)) {
-          const kept = Array.isArray(acts) ? acts.filter(a => !isMockId(a.id)) : [];
-          if (kept.length) cleaned[day] = kept;
+        if (version >= 3) return persistedState;
+        const next = { ...persistedState };
+        // Re-seed if the stored schedule is empty (e.g. was wiped by a previous migration)
+        if (!next.schedule || Object.keys(next.schedule).length === 0) {
+          next.schedule = mockSchedule;
         }
-        return { ...persistedState, schedule: cleaned };
+        return next;
       },
     }
   )

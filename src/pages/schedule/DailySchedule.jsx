@@ -1,13 +1,36 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase.js';
 import { useScheduleStore } from '../../store/useScheduleStore.js';
 import { useVolunteerStore } from '../../store/useVolunteerStore.js';
+import { useConfigStore } from '../../store/useConfigStore.js';
 import LanguageToggle from '../../components/common/LanguageToggle.jsx';
 import OfflineBanner from '../../components/common/OfflineBanner.jsx';
 
 const SESSION_ORDER = ['morning', 'afternoon', 'evening', 'night'];
 const SESSION_ICONS = { morning: '🌅', afternoon: '☀️', evening: '🌆', night: '🌙' };
+
+function slotToTime(slot) {
+  if (!slot) return null;
+  const m = String(slot).match(/^(\d{1,2}:\d{2})/);
+  return m ? m[1] : null;
+}
+
+function slotToEndTime(slot) {
+  if (!slot) return null;
+  const m = String(slot).match(/[–\-](\d{1,2}:\d{2})/);
+  return m ? m[1] : null;
+}
+
+function startToSession(start) {
+  if (!start) return 'morning';
+  const h = parseInt(start.split(':')[0], 10);
+  if (h < 12) return 'morning';
+  if (h < 17) return 'afternoon';
+  if (h < 20) return 'evening';
+  return 'night';
+}
 
 export default function DailySchedule() {
   const { t, i18n } = useTranslation();
@@ -15,10 +38,42 @@ export default function DailySchedule() {
   const { getActivitiesForDay } = useScheduleStore();
   const [selectedDay, setSelectedDay] = useState(1);
   const [expanded, setExpanded] = useState(null);
+  const [dbEvents, setDbEvents] = useState([]);
+
+  const campName = useConfigStore(s => s.campName) || import.meta.env.VITE_CAMP_NAME || '';
+  const campCity = useConfigStore(s => s.campCity) || import.meta.env.VITE_CAMP_CITY || 'बाल संस्कार शिविर';
+
+  useEffect(() => {
+    supabase
+      .from('events')
+      .select('id,name,time_slot,event_type,notes,sort_order')
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('name')
+      .then(({ data }) => setDbEvents(data || []));
+  }, []);
 
   const volunteers = useVolunteerStore(s => s.volunteers);
   const isHindi = i18n.language === 'hi';
-  const activities = getActivitiesForDay(selectedDay);
+  const localActivities = getActivitiesForDay(selectedDay);
+
+  // Convert DB events to the same activity shape used by the schedule store
+  const dbMapped = dbEvents.map(ev => ({
+    id: `db_${ev.id}`,
+    name: ev.name,
+    start_time: slotToTime(ev.time_slot) || '00:00',
+    end_time: slotToEndTime(ev.time_slot) || '',
+    session: startToSession(slotToTime(ev.time_slot)),
+    type: ev.event_type || 'event',
+    coins: 0,
+    notes: ev.notes || '',
+    _fromDB: true,
+  }));
+
+  // Merge: local activities take priority (dedup by name)
+  const localNames = new Set(localActivities.map(a => a.name.toLowerCase()));
+  const mergedExtra = dbMapped.filter(ev => !localNames.has(ev.name.toLowerCase()));
+  const activities = [...localActivities, ...mergedExtra];
 
   // Map activity name → assigned volunteer name(s) from real backend data
   const coordinatorByActivity = useMemo(() => {
@@ -46,8 +101,8 @@ export default function DailySchedule() {
       <div className="bg-forest-700 text-white px-4 py-4">
         <div className="flex items-center justify-between mb-1">
           <div>
-            <h1 className="text-xl font-bold">{t('schedule.title')}</h1>
-            <p className="text-forest-300 text-sm">बाल संस्कार शिविर</p>
+            <h1 className="text-xl font-bold">{campName || t('schedule.title')}</h1>
+            <p className="text-forest-300 text-sm">{campCity}</p>
           </div>
           <div className="flex items-center gap-2">
             <LanguageToggle compact />

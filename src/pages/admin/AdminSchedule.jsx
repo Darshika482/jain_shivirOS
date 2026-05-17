@@ -291,8 +291,11 @@ export default function AdminSchedule() {
 
                 {/* Right actions */}
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                  {/* Plan toggle — not for DB events or slot activities */}
-                  {!act._fromDB && act.type !== 'slot' && (
+                  {act._fromDB && (
+                    <span className="text-xs text-gray-400 italic">via Operations</span>
+                  )}
+                  {/* Plan toggle — available for all non-slot activities */}
+                  {act.type !== 'slot' && (
                     <button
                       onClick={() => openPlan(act)}
                       className={`text-xs px-2.5 sm:px-3 py-1.5 rounded-lg font-semibold border transition-all
@@ -304,9 +307,6 @@ export default function AdminSchedule() {
                     >
                       {isExpanded ? 'Close' : summary ? 'Edit Plan' : '+ Plan'}
                     </button>
-                  )}
-                  {act._fromDB && (
-                    <span className="text-xs text-gray-400 italic">via Operations</span>
                   )}
                   {act.type === 'special' && (
                     <button

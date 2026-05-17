@@ -82,8 +82,8 @@ export default function AdminSettings() {
     setPinMsg(null);
     const stored = localStorage.getItem('shiviros-config');
     const storedPin = stored ? JSON.parse(stored)?.state?.coinkeeperPin : null;
-    const actual = storedPin || import.meta.env.VITE_COINKEEPER_PIN || '0000';
-    if (currentPin !== actual) { setPinMsg({ ok: false, text: 'Current PIN is incorrect.' }); return; }
+    const actual = storedPin || import.meta.env.VITE_COINKEEPER_PIN || null;
+    if (actual && currentPin !== actual) { setPinMsg({ ok: false, text: 'Current PIN is incorrect.' }); return; }
     if (!/^\d{4}$/.test(newPin)) { setPinMsg({ ok: false, text: 'New PIN must be exactly 4 digits.' }); return; }
     config.saveCampConfig({ coinkeeperPin: newPin });
     setCurrentPin(''); setNewPin('');
@@ -189,11 +189,14 @@ export default function AdminSettings() {
 
       {/* Change Coinkeeper PIN */}
       <Section title="Change Coinkeeper PIN">
+        <p className="text-xs text-gray-500">
+          {config.coinkeeperPin ? 'PIN is configured.' : 'No PIN configured yet — set one to enable coinkeeper login.'}
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Field label="Current PIN">
+          <Field label={config.coinkeeperPin ? 'Current PIN' : 'Skip (not set)'}>
             <input type="password" className={INPUT + ' tracking-widest font-mono'} maxLength={4}
               value={currentPin} onChange={e => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="••••" />
+              placeholder="••••" disabled={!config.coinkeeperPin} />
           </Field>
           <Field label="New PIN (4 digits)">
             <input type="text" className={INPUT + ' tracking-widest font-mono'} maxLength={4}
@@ -202,7 +205,7 @@ export default function AdminSettings() {
           </Field>
           <Field label=" ">
             <button onClick={changePin} className="w-full mt-1 px-4 py-2 rounded-xl text-sm font-semibold bg-forest-700 text-white hover:bg-forest-800">
-              Update PIN
+              {config.coinkeeperPin ? 'Update PIN' : 'Set PIN'}
             </button>
           </Field>
         </div>
@@ -237,10 +240,10 @@ export default function AdminSettings() {
       </Section>
 
       {/* Schema Download */}
-      <Section title="Database Schema">
+      <Section title="Database Schema SQL">
         <p className="text-sm text-gray-600">
           Download or copy the full SQL schema to create all required tables in your Supabase project.
-          Paste it into the <strong>Supabase SQL Editor</strong> and click Run.
+          Paste it into the <strong>Supabase SQL Editor</strong> and click Run. Safe to re-run on an existing database.
         </p>
         <div className="flex flex-wrap gap-2">
           <button
