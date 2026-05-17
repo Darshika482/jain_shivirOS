@@ -6,16 +6,16 @@ function getAdminPassword() {
   try {
     const raw = localStorage.getItem('shiviros-config');
     const stored = raw ? JSON.parse(raw)?.state : null;
-    return stored?.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || 'darshika';
-  } catch { return import.meta.env.VITE_ADMIN_PASSWORD || 'darshika'; }
+    return stored?.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || '';
+  } catch { return import.meta.env.VITE_ADMIN_PASSWORD || ''; }
 }
 
 function getCoinkeeperPin() {
   try {
     const raw = localStorage.getItem('shiviros-config');
     const stored = raw ? JSON.parse(raw)?.state : null;
-    return stored?.coinkeeperPin || import.meta.env.VITE_COINKEEPER_PIN || '0000';
-  } catch { return import.meta.env.VITE_COINKEEPER_PIN || '0000'; }
+    return stored?.coinkeeperPin || import.meta.env.VITE_COINKEEPER_PIN || '';
+  } catch { return import.meta.env.VITE_COINKEEPER_PIN || ''; }
 }
 
 /** @returns {string[]} */
@@ -219,13 +219,17 @@ export const useAuthStore = create(
       },
 
       loginAdmin: (password) => {
-        if (password !== getAdminPassword()) return { success: false, error: 'Wrong password.' };
+        const expected = getAdminPassword();
+        if (!expected) return { success: false, error: 'Admin password not configured. Complete setup first.' };
+        if (password !== expected) return { success: false, error: 'Wrong password.' };
         set({ currentUser: { id: 'admin', name: 'Camp Admin', role: 'Admin' }, role: 'admin' });
         return { success: true };
       },
 
       loginCoinkeeper: (pin) => {
-        if (pin !== getCoinkeeperPin()) return { success: false, error: 'Wrong PIN.' };
+        const expected = getCoinkeeperPin();
+        if (!expected) return { success: false, error: 'Coinkeeper PIN not configured. Complete setup first.' };
+        if (pin !== expected) return { success: false, error: 'Wrong PIN.' };
         set({ currentUser: { id: 'keeper', name: 'Coin Keeper', role: 'Keeper' }, role: 'coinkeeper' });
         return { success: true };
       },
