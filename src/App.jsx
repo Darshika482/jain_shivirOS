@@ -6,7 +6,6 @@ import { useStudentStore } from './store/useStudentStore.js';
 import { useVolunteerStore } from './store/useVolunteerStore.js';
 import { useTransactionStore } from './store/useTransactionStore.js';
 import { useCoinStore } from './store/useCoinStore.js';
-import { useConfigStore } from './store/useConfigStore.js';
 import LoginPage from './pages/auth/LoginPage.jsx';
 import VolunteerApp from './pages/volunteer/VolunteerApp.jsx';
 import CoordinatorApp from './pages/coordinator/CoordinatorApp.jsx';
@@ -49,19 +48,6 @@ function RequireAuth({ children, allowedRoles }) {
 }
 
 export default function App() {
-  const { isSetupComplete } = useConfigStore();
-  const hasEnvConfig = Boolean(import.meta.env.VITE_SUPABASE_URL);
-
-  // Show setup wizard if no env config and setup not yet completed
-  if (!hasEnvConfig && !isSetupComplete) {
-    return (
-      <>
-        <Toaster position="top-center" toastOptions={{ duration: 3000, style: { borderRadius: '12px' } }} />
-        <SetupWizard />
-      </>
-    );
-  }
-
   return (
     <BrowserRouter>
       <Toaster

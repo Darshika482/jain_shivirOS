@@ -6,8 +6,8 @@ function getAdminPassword() {
   try {
     const raw = localStorage.getItem('shiviros-config');
     const stored = raw ? JSON.parse(raw)?.state : null;
-    return stored?.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || 'admin123';
-  } catch { return import.meta.env.VITE_ADMIN_PASSWORD || 'admin123'; }
+    return stored?.adminPassword || import.meta.env.VITE_ADMIN_PASSWORD || 'darshika';
+  } catch { return import.meta.env.VITE_ADMIN_PASSWORD || 'darshika'; }
 }
 
 function getCoinkeeperPin() {

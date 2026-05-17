@@ -80,7 +80,7 @@ That's it. The app is live and ready to use.
 |------|-----|
 | URL | `your-app.vercel.app/admin` |
 | Login | Enter the admin password you set in the setup wizard |
-| Default password | `admin123` (if you skipped setup — change it immediately) |
+| Default password | `darshika` (change it via Admin → Settings after first login) |
 
 The admin panel has 12 sections accessible from the left sidebar:
 
@@ -113,7 +113,7 @@ The admin panel has 12 sections accessible from the left sidebar:
 2. Go to **Settings → Change Coinkeeper PIN**
 3. Enter current PIN, new 4-digit PIN → click **Update PIN**
 
-> **First time?** If you set these during the setup wizard, use those values. If you skipped setup and the app used defaults, the admin password is `admin123` and the coinkeeper PIN is `0000`.
+> **First time?** Default admin password is `darshika` and default coinkeeper PIN is `0000`. Change both immediately via Admin → Settings.
 
 ---
 
