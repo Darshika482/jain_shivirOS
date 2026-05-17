@@ -236,14 +236,14 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
   async function saveEvent(form) {
     if (editingId) {
       const { error } = await supabase.from('events').update(form).eq('id', editingId);
-      if (error) { toast.error('Save failed.'); return; }
+      if (error) { toast.error(`Save failed: ${error.message}`); return; }
       setEvents(ev => ev.map(e => e.id === editingId ? { ...e, ...form } : e));
       toast.success('Event updated.');
       setEditingId(null);
     } else {
       const id = makeId('ev');
       const { error } = await supabase.from('events').insert({ ...form, id });
-      if (error) { toast.error('Save failed.'); return; }
+      if (error) { toast.error(`Save failed: ${error.message}`); return; }
       setEvents(ev => [...ev, { ...form, id }]);
       toast.success('Event added.');
       setShowAdd(false);
@@ -268,16 +268,17 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
 
   async function saveResp(form) {
     if (editRespId) {
-      const { error } = await supabase.from('event_responsibilities').update(form).eq('id', editRespId);
-      if (error) { toast.error('Save failed.'); return; }
-      setResps(rs => rs.map(r => r.id === editRespId ? { ...r, ...form } : r));
+      const { id: _id, ...payload } = form;
+      const { error } = await supabase.from('event_responsibilities').update(payload).eq('id', editRespId);
+      if (error) { toast.error(`Save failed: ${error.message}`); return; }
+      setResps(rs => rs.map(r => r.id === editRespId ? { ...r, ...payload } : r));
       toast.success('Responsibility updated.');
       setEditRespId(null);
     } else if (addRespFor) {
       const id = makeId('er');
       const payload = { ...form, id, event_id: addRespFor, sort_order: responsibilities.filter(r => r.event_id === addRespFor).length + 1 };
       const { error } = await supabase.from('event_responsibilities').insert(payload);
-      if (error) { toast.error('Save failed.'); return; }
+      if (error) { toast.error(`Save failed: ${error.message}`); return; }
       setResps(rs => [...rs, payload]);
       toast.success('Responsibility added.');
       setAddRespFor(null);
