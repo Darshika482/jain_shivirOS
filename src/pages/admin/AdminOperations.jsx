@@ -110,6 +110,7 @@ function EventForm({ initial, onSave, onCancel }) {
           <label className="text-xs text-gray-500 font-medium">Event Type</label>
           <select className="form-input mt-1" value={form.event_type} onChange={e => set('event_type', e.target.value)}>
             <option value="daily">Daily</option>
+            <option value="class">Class Session</option>
             <option value="one-time">One-Time</option>
             <option value="two-day">Two-Day</option>
           </select>
@@ -292,8 +293,12 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
                       <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-semibold">{ev.responsible_role}</span>
                     </div>
                     {ev.time_slot && <div className="text-xs text-gray-400 mt-0.5">🕐 {ev.time_slot}</div>}
-                    <div className="text-xs text-gray-400 mt-0.5">
-                      {ev.event_type} · {ev.applicable_gender === 'all' ? 'All' : ev.applicable_gender === 'boys_only' ? 'Boys' : 'Girls'} · Pool: {ev.coin_pool_boys}♂/{ev.coin_pool_girls}♀ coins
+                    <div className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      {ev.event_type === 'class'
+                        ? <span className="px-2 py-0.5 rounded-full bg-saffron-100 text-saffron-700 font-semibold">📚 Class Session</span>
+                        : <span>{ev.event_type}</span>
+                      }
+                      <span>· {ev.applicable_gender === 'all' ? 'All' : ev.applicable_gender === 'boys_only' ? 'Boys' : 'Girls'} · Pool: {ev.coin_pool_boys}♂/{ev.coin_pool_girls}♀ coins</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
