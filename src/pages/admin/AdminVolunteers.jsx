@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
+import { supabase } from '../../lib/supabase.js';
 import { useVolunteerStore } from '../../store/useVolunteerStore.js';
 import { useStudentStore } from '../../store/useStudentStore.js';
 import { useScheduleStore } from '../../store/useScheduleStore.js';
@@ -122,15 +123,12 @@ function mentorHasDuty(mentor, area) {
 }
 
 const ROLES = ['Activity Coordinator', 'Zone Mentor', 'Class Teacher', 'Collection Mentor', 'Admin'];
-// Three teaching sessions per day. Keep the keys as strings to match the
-// jsonb shape stored in the database.
-const SESSION_KEYS = ['1', '2', '3'];
-const SESSION_LABELS = {
+const DEFAULT_SESSION_KEYS = ['1', '2', '3'];
+const DEFAULT_SESSION_LABELS = {
   '1': 'Session 1 — Morning 1',
   '2': 'Session 2 — Morning 2',
   '3': 'Session 3 — Afternoon',
 };
-const EMPTY_SESSION_CLASSES = { '1': '', '2': '', '3': '' };
 const EMPTY_VOL = {
   name: '',
   pin: '',
@@ -142,19 +140,24 @@ const EMPTY_VOL = {
   assigned_activity: '',
   assigned_class: '',
   assigned_classes: [],
-  session_classes: { ...EMPTY_SESSION_CLASSES },
+  session_classes: {},
   has_deduction_rights: false,
   responsibilities: [],
 };
 
-function parseSessionClasses(raw) {
+function parseSessionClasses(raw, keys = DEFAULT_SESSION_KEYS) {
   let value = raw;
   if (typeof value === 'string') {
     try { value = JSON.parse(value); } catch { value = null; }
   }
-  const out = { ...EMPTY_SESSION_CLASSES };
+  // Include both the provided keys and any extra keys already saved in the DB
+  const savedKeys = (value && typeof value === 'object' && !Array.isArray(value))
+    ? Object.keys(value)
+    : [];
+  const allKeys = [...new Set([...keys, ...savedKeys])];
+  const out = Object.fromEntries(allKeys.map(k => [k, '']));
   if (value && typeof value === 'object' && !Array.isArray(value)) {
-    for (const k of SESSION_KEYS) {
+    for (const k of allKeys) {
       const code = String(value[k] ?? '').trim();
       if (code) out[k] = code;
     }
@@ -182,6 +185,30 @@ export default function AdminVolunteers() {
   const { volunteers, addVolunteer, updateVolunteer, deleteVolunteer, importFromCSV } = useVolunteerStore();
   const { students } = useStudentStore();
   const { schedule } = useScheduleStore();
+
+  const [classSessionEvents, setClassSessionEvents] = useState([]);
+
+  useEffect(() => {
+    supabase
+      .from('events')
+      .select('id,name,time_slot,sort_order')
+      .eq('event_type', 'class')
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('name')
+      .then(({ data }) => setClassSessionEvents(data || []));
+  }, []);
+
+  const sessionKeys = classSessionEvents.length > 0
+    ? classSessionEvents.map((_, i) => String(i + 1))
+    : DEFAULT_SESSION_KEYS;
+
+  const sessionLabels = classSessionEvents.length > 0
+    ? Object.fromEntries(classSessionEvents.map((ev, i) => [
+        String(i + 1),
+        ev.time_slot ? `${ev.name} (${ev.time_slot})` : ev.name,
+      ]))
+    : DEFAULT_SESSION_LABELS;
 
   const [view, setView] = useState('list'); // 'list' | 'board'
   const [showForm, setShowForm] = useState(false);
@@ -340,8 +367,8 @@ export default function AdminVolunteers() {
           ...Object.keys(CLASS_TEACHER_NAMES || {}),
           ...(students || []).map(s => normalizeClassCode(s?.class)),
           ...volunteers.flatMap((v) => {
-            const sessionClasses = parseSessionClasses(v.session_classes);
-            const fromSessions = SESSION_KEYS.map(k => normalizeClassCode(sessionClasses[k]));
+            const sessionClasses = parseSessionClasses(v.session_classes, sessionKeys);
+            const fromSessions = sessionKeys.map(k => normalizeClassCode(sessionClasses[k]));
             const fromAssignedList = Array.isArray(v.assigned_classes)
               ? v.assigned_classes.map(normalizeClassCode)
               : [];
@@ -384,10 +411,10 @@ export default function AdminVolunteers() {
       const updates = volunteers
         .filter(v => !(v.roles || []).includes('Admin'))
         .map(async (v) => {
-          const sessionClasses = parseSessionClasses(v.session_classes);
+          const sessionClasses = parseSessionClasses(v.session_classes, sessionKeys);
           const assignedClasses = new Set(
             [
-              ...SESSION_KEYS.map(k => normalizeClassCode(sessionClasses[k])),
+              ...sessionKeys.map(k => normalizeClassCode(sessionClasses[k])),
               ...(Array.isArray(v.assigned_classes) ? v.assigned_classes.map(normalizeClassCode) : []),
               normalizeClassCode(v.assigned_class),
             ].filter(Boolean)
@@ -570,7 +597,7 @@ export default function AdminVolunteers() {
     const isTeacher = (form.roles || []).includes('Class Teacher');
     // Per-session map (cleaned, only kept if Class Teacher).
     const sessionClasses = isTeacher
-      ? SESSION_KEYS.reduce((acc, k) => {
+      ? sessionKeys.reduce((acc, k) => {
         const code = String(form.session_classes?.[k] || '').trim();
         if (code) acc[k] = code;
         return acc;
@@ -600,12 +627,12 @@ export default function AdminVolunteers() {
     const assignedClasses = Array.isArray(v.assigned_classes)
       ? v.assigned_classes
       : (v.assigned_class ? [v.assigned_class] : []);
-    const sessionClasses = parseSessionClasses(v.session_classes);
+    const sessionClasses = parseSessionClasses(v.session_classes, sessionKeys);
     // If the saved volunteer has classes but no per-session map yet,
     // pre-fill every session with their primary class.
-    const hasAnySession = SESSION_KEYS.some(k => sessionClasses[k]);
+    const hasAnySession = sessionKeys.some(k => sessionClasses[k]);
     if (!hasAnySession && assignedClasses[0]) {
-      for (const k of SESSION_KEYS) sessionClasses[k] = assignedClasses[0];
+      for (const k of sessionKeys) sessionClasses[k] = assignedClasses[0];
     }
     setEditingId(v.id);
     setForm({
@@ -900,8 +927,8 @@ export default function AdminVolunteers() {
                     <span key={r} className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${ROLE_COLORS[r] || 'bg-gray-100 text-gray-600'}`}>{r}</span>
                   ))}
                   {(v.roles || []).includes('Class Teacher') && (() => {
-                    const sc = parseSessionClasses(v.session_classes);
-                    const filled = SESSION_KEYS.filter(k => sc[k]);
+                    const sc = parseSessionClasses(v.session_classes, sessionKeys);
+                    const filled = sessionKeys.filter(k => sc[k]);
                     if (filled.length === 0) return null;
                     return filled.map(k => (
                       <span key={k} className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-saffron-100 text-saffron-700">
@@ -969,8 +996,8 @@ export default function AdminVolunteers() {
                             <span key={r} className={`px-2 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[r] || 'bg-gray-100 text-gray-600'}`}>{r}</span>
                           ))}
                           {(v.roles || []).includes('Class Teacher') && (() => {
-                            const sc = parseSessionClasses(v.session_classes);
-                            const filled = SESSION_KEYS.filter(k => sc[k]);
+                            const sc = parseSessionClasses(v.session_classes, sessionKeys);
+                            const filled = sessionKeys.filter(k => sc[k]);
                             if (filled.length === 0) return null;
                             return filled.map(k => (
                               <span key={k} className="px-2 py-0.5 rounded-full text-xs font-semibold bg-saffron-100 text-saffron-700">
@@ -1337,7 +1364,7 @@ export default function AdminVolunteers() {
                           const code = form.session_classes['1'];
                           setForm(p => ({
                             ...p,
-                            session_classes: { '1': code, '2': code, '3': code },
+                            session_classes: Object.fromEntries(sessionKeys.map(k => [k, code])),
                           }));
                         }}
                         className="text-[11px] font-semibold text-saffron-700 hover:underline"
@@ -1352,12 +1379,12 @@ export default function AdminVolunteers() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {SESSION_KEYS.map(key => {
+                      {sessionKeys.map(key => {
                         const value = form.session_classes?.[key] || '';
                         return (
                           <div key={key} className="flex flex-wrap items-center gap-2 p-2 rounded-xl border border-gray-200 bg-white">
                             <span className="text-xs font-semibold text-gray-700 w-44 sm:w-48 shrink-0">
-                              {SESSION_LABELS[key]}
+                              {sessionLabels[key]}
                             </span>
                             <div className="flex flex-wrap gap-1.5 flex-1">
                               <button
