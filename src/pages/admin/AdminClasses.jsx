@@ -5,7 +5,6 @@ import { useStudentStore } from '../../store/useStudentStore.js';
 import { useVolunteerStore } from '../../store/useVolunteerStore.js';
 import { useAttendanceStore } from '../../store/useAttendanceStore.js';
 import { useTransactionStore } from '../../store/useTransactionStore.js';
-import { useScheduleStore } from '../../store/useScheduleStore.js';
 import { CLASS_TEACHER_NAMES, getTeacherNameForClass } from '../../lib/classTeachers.js';
 import { CAMP_TOTAL_DAYS, getDateForCampDay } from '../../lib/campDates.js';
 
@@ -120,13 +119,13 @@ export default function AdminClasses() {
   const { students, fetchStudents } = useStudentStore();
   const { volunteers } = useVolunteerStore();
   const { currentDay, fetchTransactions } = useTransactionStore();
-  const getActivitiesForDay = useScheduleStore(s => s.getActivitiesForDay);
   const fetchAttendance = useAttendanceStore(s => s.fetchAttendance);
   const getStatus = useAttendanceStore(s => s.getStatus);
   const getSubmission = useAttendanceStore(s => s.getSubmission);
 
   const [openClass, setOpenClass] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [resetAttendanceOpen, setResetAttendanceOpen] = useState(false);
   const [resetDay, setResetDay] = useState(currentDay || 1);
   const [attendanceResetPhrase, setAttendanceResetPhrase] = useState('');
   const [checkInResetPhrase, setCheckInResetPhrase] = useState('');
@@ -334,34 +333,6 @@ export default function AdminClasses() {
   const totalCheckedIn = students.filter(s => s.checked_in).length;
   const checkInPercent = totalStudents ? Math.round((totalCheckedIn / totalStudents) * 100) : 0;
   const classTeacherCount = volunteers.filter(v => (v.roles || []).includes('Class Teacher')).length;
-
-  const dailySamoicActivities = (getActivitiesForDay(currentDay) || []).filter((activity) =>
-    /samo|samuh|samay/i.test(String(activity.name || ''))
-  );
-
-  const juniors = students.filter(s => /^[12]/.test(String(s.class || '')));
-  const seniors = students.filter(s => /^[34]/.test(String(s.class || '')));
-
-  // For mixed-class snapshots like Juniors/Seniors, use each student's own
-  // class code so the lookup matches the per-class storage scheme.
-  const sumByStatus = (group) => {
-    const counts = { present: 0, absent: 0, late: 0, excused: 0 };
-    group.forEach((student) => {
-      const status = getStatus(student.id, 3, String(student.class || '').trim());
-      counts[status] = (counts[status] || 0) + 1;
-    });
-    return counts;
-  };
-  const session3Juniors = sumByStatus(juniors);
-  const session3Seniors = sumByStatus(seniors);
-
-  const samuhikMentors = volunteers
-    .filter(v =>
-      (v.responsibilities || []).some(resp => /samuh|samo|samay/i.test(String(resp || ''))) ||
-      /samuh|samo|samay/i.test(String(v.assigned_activity || ''))
-    )
-    .map(v => v.name)
-    .slice(0, 8);
 
   return (
     <div className="p-3 sm:p-6 space-y-4 bg-slate-50 min-h-full">
@@ -582,33 +553,6 @@ export default function AdminClasses() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-        <h3 className="font-semibold text-gray-900">Daily Samuhik Kaksha (Juniors/Seniors)</h3>
-        <div className="text-xs text-gray-500 mt-1">
-          This is a read-only snapshot for daily planning and class flow visibility.
-        </div>
-        <div className="grid md:grid-cols-2 gap-3 mt-3">
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <div className="font-semibold text-amber-800">Juniors</div>
-            <div className="text-xs text-amber-700 mt-1">
-              Students: {juniors.length} • Session 3 Present: {session3Juniors.present}
-            </div>
-          </div>
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3">
-            <div className="font-semibold text-indigo-800">Seniors</div>
-            <div className="text-xs text-indigo-700 mt-1">
-              Students: {seniors.length} • Session 3 Present: {session3Seniors.present}
-            </div>
-          </div>
-        </div>
-        <div className="mt-3 text-xs text-gray-600">
-          Mentors: {samuhikMentors.length ? samuhikMentors.join(', ') : 'No Samuhik mentor assignment found yet'}
-        </div>
-        <div className="mt-2 text-xs text-gray-600">
-          Today&apos;s schedule entries: {dailySamoicActivities.length ? dailySamoicActivities.map(a => a.name).join(', ') : 'No explicit Samuhik Kaksha item in schedule for today'}
-        </div>
-      </div>
-
       <div className="bg-white rounded-2xl border border-red-200 p-4 shadow-sm">
         <h3 className="font-semibold text-red-700">Admin Reset Tools</h3>
         <p className="text-xs text-gray-500 mt-1">
@@ -617,40 +561,52 @@ export default function AdminClasses() {
 
         <div className="grid lg:grid-cols-2 gap-4 mt-3">
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <div className="text-sm font-semibold text-amber-800">Reset Attendance by Day</div>
-            <div className="text-xs text-amber-700 mt-1">
-              Clears attendance rows, submission rows, and attendance-awarded transactions for selected day, then rebuilds student totals.
-            </div>
-
-            <div className="mt-3 flex gap-2 items-center">
-              <label className="text-xs text-gray-600 font-medium">Day</label>
-              <select
-                value={resetDay}
-                onChange={(e) => setResetDay(Number(e.target.value))}
-                className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
-              >
-                {Array.from({ length: CAMP_TOTAL_DAYS }, (_, i) => i + 1).map((day) => (
-                  <option key={day} value={day}>
-                    Day {day} ({getDateForCampDay(day)})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <input
-              value={attendanceResetPhrase}
-              onChange={(e) => setAttendanceResetPhrase(e.target.value)}
-              className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              placeholder={`Type ${ATTENDANCE_RESET_TOKEN}`}
-            />
             <button
               type="button"
-              onClick={handleResetAttendanceForDay}
-              disabled={resettingAttendance}
-              className="mt-2 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+              onClick={() => setResetAttendanceOpen(o => !o)}
+              className="w-full flex items-center justify-between text-left"
             >
-              {resettingAttendance ? 'Resetting…' : `Reset Day ${resetDay} Attendance`}
+              <div className="text-sm font-semibold text-amber-800">Reset Attendance by Day</div>
+              <span className="text-amber-600 text-lg leading-none">{resetAttendanceOpen ? '▲' : '▼'}</span>
             </button>
+
+            {resetAttendanceOpen && (
+              <>
+                <div className="text-xs text-amber-700 mt-2">
+                  Clears attendance rows, submission rows, and attendance-awarded transactions for selected day, then rebuilds student totals.
+                </div>
+
+                <div className="mt-3 flex gap-2 items-center">
+                  <label className="text-xs text-gray-600 font-medium">Day</label>
+                  <select
+                    value={resetDay}
+                    onChange={(e) => setResetDay(Number(e.target.value))}
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+                  >
+                    {Array.from({ length: CAMP_TOTAL_DAYS }, (_, i) => i + 1).map((day) => (
+                      <option key={day} value={day}>
+                        Day {day} ({getDateForCampDay(day)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <input
+                  value={attendanceResetPhrase}
+                  onChange={(e) => setAttendanceResetPhrase(e.target.value)}
+                  className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder={`Type ${ATTENDANCE_RESET_TOKEN}`}
+                />
+                <button
+                  type="button"
+                  onClick={handleResetAttendanceForDay}
+                  disabled={resettingAttendance}
+                  className="mt-2 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {resettingAttendance ? 'Resetting…' : `Reset Day ${resetDay} Attendance`}
+                </button>
+              </>
+            )}
           </div>
 
           <div className="rounded-xl border border-red-200 bg-red-50 p-3">
