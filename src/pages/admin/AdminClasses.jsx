@@ -125,7 +125,9 @@ export default function AdminClasses() {
 
   const [openClass, setOpenClass] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [resetToolsOpen, setResetToolsOpen] = useState(false);
   const [resetAttendanceOpen, setResetAttendanceOpen] = useState(false);
+  const [resetCheckInOpen, setResetCheckInOpen] = useState(false);
   const [resetDay, setResetDay] = useState(currentDay || 1);
   const [attendanceResetPhrase, setAttendanceResetPhrase] = useState('');
   const [checkInResetPhrase, setCheckInResetPhrase] = useState('');
@@ -554,83 +556,106 @@ export default function AdminClasses() {
       </div>
 
       <div className="bg-white rounded-2xl border border-red-200 p-4 shadow-sm">
-        <h3 className="font-semibold text-red-700">Admin Reset Tools</h3>
-        <p className="text-xs text-gray-500 mt-1">
-          Use carefully for demo recovery. These actions are destructive and should be done only by admin.
-        </p>
-
-        <div className="grid lg:grid-cols-2 gap-4 mt-3">
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-            <button
-              type="button"
-              onClick={() => setResetAttendanceOpen(o => !o)}
-              className="w-full flex items-center justify-between text-left"
-            >
-              <div className="text-sm font-semibold text-amber-800">Reset Attendance by Day</div>
-              <span className="text-amber-600 text-lg leading-none">{resetAttendanceOpen ? '▲' : '▼'}</span>
-            </button>
-
-            {resetAttendanceOpen && (
-              <>
-                <div className="text-xs text-amber-700 mt-2">
-                  Clears attendance rows, submission rows, and attendance-awarded transactions for selected day, then rebuilds student totals.
-                </div>
-
-                <div className="mt-3 flex gap-2 items-center">
-                  <label className="text-xs text-gray-600 font-medium">Day</label>
-                  <select
-                    value={resetDay}
-                    onChange={(e) => setResetDay(Number(e.target.value))}
-                    className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
-                  >
-                    {Array.from({ length: CAMP_TOTAL_DAYS }, (_, i) => i + 1).map((day) => (
-                      <option key={day} value={day}>
-                        Day {day} ({getDateForCampDay(day)})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <input
-                  value={attendanceResetPhrase}
-                  onChange={(e) => setAttendanceResetPhrase(e.target.value)}
-                  className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  placeholder={`Type ${ATTENDANCE_RESET_TOKEN}`}
-                />
-                <button
-                  type="button"
-                  onClick={handleResetAttendanceForDay}
-                  disabled={resettingAttendance}
-                  className="mt-2 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
-                >
-                  {resettingAttendance ? 'Resetting…' : `Reset Day ${resetDay} Attendance`}
-                </button>
-              </>
-            )}
+        <button
+          type="button"
+          onClick={() => setResetToolsOpen(o => !o)}
+          className="w-full flex items-center justify-between text-left"
+        >
+          <div>
+            <h3 className="font-semibold text-red-700">Admin Reset Tools</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Use carefully for demo recovery. Destructive — admin only.
+            </p>
           </div>
+          <span className="text-red-400 text-lg leading-none ml-3 flex-shrink-0">{resetToolsOpen ? '▲' : '▼'}</span>
+        </button>
 
-          <div className="rounded-xl border border-red-200 bg-red-50 p-3">
-            <div className="text-sm font-semibold text-red-800">Reset Check-In Data (All Students)</div>
-            <div className="text-xs text-red-700 mt-1">
-              Sets all students to not checked-in and clears check-in timestamps. This affects dashboard and check-in records.
+        {resetToolsOpen && (
+          <div className="grid lg:grid-cols-2 gap-4 mt-3">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+              <button
+                type="button"
+                onClick={() => setResetAttendanceOpen(o => !o)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="text-sm font-semibold text-amber-800">Reset Attendance by Day</div>
+                <span className="text-amber-600 text-lg leading-none">{resetAttendanceOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {resetAttendanceOpen && (
+                <>
+                  <div className="text-xs text-amber-700 mt-2">
+                    Clears attendance rows, submission rows, and attendance-awarded transactions for selected day, then rebuilds student totals.
+                  </div>
+
+                  <div className="mt-3 flex gap-2 items-center">
+                    <label className="text-xs text-gray-600 font-medium">Day</label>
+                    <select
+                      value={resetDay}
+                      onChange={(e) => setResetDay(Number(e.target.value))}
+                      className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+                    >
+                      {Array.from({ length: CAMP_TOTAL_DAYS }, (_, i) => i + 1).map((day) => (
+                        <option key={day} value={day}>
+                          Day {day} ({getDateForCampDay(day)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <input
+                    value={attendanceResetPhrase}
+                    onChange={(e) => setAttendanceResetPhrase(e.target.value)}
+                    className="mt-2 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                    placeholder={`Type ${ATTENDANCE_RESET_TOKEN}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleResetAttendanceForDay}
+                    disabled={resettingAttendance}
+                    className="mt-2 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {resettingAttendance ? 'Resetting…' : `Reset Day ${resetDay} Attendance`}
+                  </button>
+                </>
+              )}
             </div>
 
-            <input
-              value={checkInResetPhrase}
-              onChange={(e) => setCheckInResetPhrase(e.target.value)}
-              className="mt-3 w-full border border-red-300 rounded-lg px-3 py-2 text-sm"
-              placeholder={`Type ${CHECKIN_RESET_TOKEN}`}
-            />
-            <button
-              type="button"
-              onClick={handleResetCheckIn}
-              disabled={resettingCheckIn}
-              className="mt-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
-            >
-              {resettingCheckIn ? 'Resetting…' : 'Reset All Check-In Data'}
-            </button>
+            <div className="rounded-xl border border-red-200 bg-red-50 p-3">
+              <button
+                type="button"
+                onClick={() => setResetCheckInOpen(o => !o)}
+                className="w-full flex items-center justify-between text-left"
+              >
+                <div className="text-sm font-semibold text-red-800">Reset Check-In Data (All Students)</div>
+                <span className="text-red-400 text-lg leading-none">{resetCheckInOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {resetCheckInOpen && (
+                <>
+                  <div className="text-xs text-red-700 mt-2">
+                    Sets all students to not checked-in and clears check-in timestamps. This affects dashboard and check-in records.
+                  </div>
+
+                  <input
+                    value={checkInResetPhrase}
+                    onChange={(e) => setCheckInResetPhrase(e.target.value)}
+                    className="mt-3 w-full border border-red-300 rounded-lg px-3 py-2 text-sm"
+                    placeholder={`Type ${CHECKIN_RESET_TOKEN}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleResetCheckIn}
+                    disabled={resettingCheckIn}
+                    className="mt-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {resettingCheckIn ? 'Resetting…' : 'Reset All Check-In Data'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="space-y-3">
