@@ -194,7 +194,6 @@ export default function AdminVolunteers() {
   const [filterMobile, setFilterMobile] = useState('all');
   const [filterResponsibility, setFilterResponsibility] = useState('all');
   const [newResp, setNewResp] = useState('');
-  const [showImport, setShowImport] = useState(false);
   const [importing, setImporting] = useState(false);
   const csvInputRef = useRef(null);
   const [dutyAreas, setDutyAreas] = useState(() => {
@@ -638,6 +637,25 @@ export default function AdminVolunteers() {
     setForm(p => ({ ...p, responsibilities: p.responsibilities.filter((_, idx) => idx !== i) }));
   };
 
+  const exportAllMentors = () => {
+    const headers = ['Name', 'PIN', 'Mobile', 'City', 'Roles', 'Assigned Classes', 'Has Deduction Rights', 'Availability'];
+    const rows = volunteers.map(v => [
+      v.name || '',
+      v.pin || '',
+      v.mobile || '',
+      v.city || '',
+      (v.roles || []).join(';'),
+      (v.assigned_classes?.length ? v.assigned_classes : v.assigned_class ? [v.assigned_class] : []).join(';'),
+      v.has_deduction_rights ? 'Yes' : 'No',
+      v.availability || '',
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'mentors-export.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const downloadMentorTemplate = async () => {
     const ExcelJS = (await import('exceljs')).default;
     const workbook = new ExcelJS.Workbook();
@@ -754,12 +772,6 @@ export default function AdminVolunteers() {
           + {t('admin.addVolunteer')}
         </button>
         <span className="text-sm text-gray-500">{volunteers.filter(v => !v.roles?.includes('Admin')).length} mentors</span>
-        <button
-          onClick={() => setShowImport(s => !s)}
-          className="text-sm px-3 py-2 rounded-xl border-2 border-gray-200 text-gray-700 hover:border-forest-500 transition-all"
-        >
-          {showImport ? 'Hide Import' : 'Bulk Import / Export'}
-        </button>
         {/* View toggle */}
         <div className="ml-auto flex gap-0 border-2 border-gray-200 rounded-xl overflow-hidden">
           <button
@@ -778,35 +790,38 @@ export default function AdminVolunteers() {
       </div>
 
       {/* ── BULK IMPORT / EXPORT ─────────────────────────────────────────────── */}
-      {showImport && (
-        <div className="bg-white border-2 border-dashed border-forest-300 rounded-2xl p-4 mb-4">
-          <div className="text-sm font-semibold text-gray-700 mb-1">Bulk Import / Export</div>
-          <p className="text-xs text-gray-500 mb-3">
-            Download the template (Excel), fill it in — the <strong>Roles</strong> and <strong>Has Deduction Rights</strong> columns have dropdowns built in.
-            Save as <strong>.csv</strong> and upload below. Multiple roles: separate with semicolons.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={downloadMentorTemplate}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-saffron-400 bg-saffron-50 text-saffron-800 text-sm font-semibold hover:bg-saffron-100 transition-all"
-            >
-              ⬇ Download Template (.xlsx)
-            </button>
-            <button
-              onClick={() => csvInputRef.current?.click()}
-              disabled={importing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-forest-400 bg-forest-50 text-forest-800 text-sm font-semibold hover:bg-forest-100 transition-all disabled:opacity-50"
-            >
-              {importing ? '⏳ Importing…' : '⬆ Upload CSV'}
-            </button>
-            <input ref={csvInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
-          </div>
-          <div className="mt-3 text-xs text-gray-400 space-y-0.5">
-            <div><span className="font-semibold text-gray-600">Roles:</span> {ROLES.join(' · ')}</div>
-            <div><span className="font-semibold text-gray-600">Assigned Classes:</span> class codes separated by semicolons, e.g. <span className="font-mono">1A;1B;2A</span></div>
-          </div>
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4">
+        <div className="text-sm font-semibold text-gray-700 mb-1">Bulk Import / Export</div>
+        <p className="text-xs text-gray-500 mb-3">
+          Download all current mentors as CSV, or use the Excel template (has role dropdowns built in) to add mentors in bulk.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={exportAllMentors}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:border-forest-500 transition-all"
+          >
+            ⬇ Export All Mentors (.csv)
+          </button>
+          <button
+            onClick={downloadMentorTemplate}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-saffron-400 bg-saffron-50 text-saffron-800 text-sm font-semibold hover:bg-saffron-100 transition-all"
+          >
+            ⬇ Download Template (.xlsx)
+          </button>
+          <button
+            onClick={() => csvInputRef.current?.click()}
+            disabled={importing}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-2 border-forest-400 bg-forest-50 text-forest-800 text-sm font-semibold hover:bg-forest-100 transition-all disabled:opacity-50"
+          >
+            {importing ? '⏳ Importing…' : '⬆ Upload CSV'}
+          </button>
+          <input ref={csvInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
         </div>
-      )}
+        <div className="mt-3 text-xs text-gray-400">
+          <span className="font-semibold text-gray-600">Roles:</span> {ROLES.join(' · ')} &nbsp;·&nbsp;
+          <span className="font-semibold text-gray-600">Multiple values:</span> separate with semicolons
+        </div>
+      </div>
 
       {/* ── MENTOR LIST VIEW ─────────────────────────────────────────────────── */}
       {view === 'list' && (
