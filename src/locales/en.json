@@ -198,7 +198,8 @@
     "addStakeholder": "Add Stakeholder",
     "checklist": "Materials Checklist",
     "markDone": "Mark Done",
-    "operations": "Operations"
+    "operations": "Operations",
+    "settings": "Settings"
   },
   "coinkeeper": {
     "title": "Master Coin Keeper",

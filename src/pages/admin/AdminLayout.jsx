@@ -15,6 +15,8 @@ import AdminCoinRegister from './AdminCoinRegister.jsx';
 import AdminCheckInRecords from './AdminCheckInRecords.jsx';
 import AdminOperations from './AdminOperations.jsx';
 import AdminClasses from './AdminClasses.jsx';
+import AdminSettings from './AdminSettings.jsx';
+import { useConfigStore } from '../../store/useConfigStore.js';
 
 const NAV_ITEMS = [
   { key: 'dashboard', icon: '📊', label: 'admin.dashboard' },
@@ -28,6 +30,7 @@ const NAV_ITEMS = [
   { key: 'volunteers', icon: '🙋', label: 'admin.volunteers' },
   { key: 'coinRegister', icon: '📒', label: 'admin.coinRegister' },
   { key: 'operations',  icon: '⚙️',  label: 'admin.operations'  },
+  { key: 'settings',    icon: '🔧',  label: 'admin.settings'    },
 ];
 
 const PAGES = {
@@ -42,11 +45,13 @@ const PAGES = {
   volunteers: AdminVolunteers,
   coinRegister: AdminCoinRegister,
   operations:   AdminOperations,
+  settings:     AdminSettings,
 };
 
 export default function AdminLayout() {
   const { t } = useTranslation();
   const { logout } = useAuthStore();
+  const campName = useConfigStore(s => s.campName) || import.meta.env.VITE_CAMP_NAME || 'ShivirOS';
   const navigate = useNavigate();
   const location = useLocation();
   // On md+ default open; on mobile default closed
@@ -84,7 +89,7 @@ export default function AdminLayout() {
           <button onClick={() => setSidebarOpen(s => !s)} className="text-white text-xl p-1 flex-shrink-0">☰</button>
           {sidebarOpen && (
             <div className="overflow-hidden">
-              <div className="font-bold text-sm whitespace-nowrap">बाल संस्कार</div>
+              <div className="font-bold text-sm whitespace-nowrap truncate max-w-[140px]">{campName}</div>
               <div className="text-xs text-forest-300 whitespace-nowrap">Admin Panel</div>
             </div>
           )}
