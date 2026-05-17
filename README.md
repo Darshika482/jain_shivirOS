@@ -93,13 +93,15 @@ The first time anyone opens the app (with no config stored), the setup wizard ap
 | **3 — Configure camp** | Enter camp name, city, dates, admin password, and coinkeeper PIN |
 | **4 — Launch** | Review everything → click Launch App |
 
-> **Important:** The admin password and coinkeeper PIN you set in the wizard are the only credentials that work. There are no default fallback passwords — the app will refuse login until credentials are configured.
+> **Default admin password:** If no password has been configured yet (wizard not completed, no env var set), the app uses **`darshika`** as the default admin password so you can log in and complete setup. Change it immediately via Admin → Settings after your first login.
 
 ---
 
 ## Admin Panel Overview
 
 Log in at `/admin` (or click the Admin tile on the home screen) using your admin password.
+
+> **First login:** If the password hasn't been set yet, use **`darshika`** (the default). The login screen will show a reminder when the default is active. Go to **Admin → Settings → Change Admin Password** immediately after your first login.
 
 | Section | Purpose |
 |---------|---------|
@@ -359,7 +361,7 @@ Each role gets a PIN-based login from the home screen:
 
 ### Admin password
 
-1. Log in to the admin panel
+1. Log in to the admin panel (use **`darshika`** if you haven't set a password yet)
 2. Go to **Settings** (🔧 in the left sidebar)
 3. Under **Change Admin Password** — enter current password, new password, confirm → **Update Password**
 
