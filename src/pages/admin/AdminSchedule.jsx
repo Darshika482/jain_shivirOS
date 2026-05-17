@@ -186,6 +186,13 @@ export default function AdminSchedule() {
       )}
 
       {/* Activity list */}
+      {sorted.length === 0 && (
+        <div className="bg-white rounded-2xl border border-dashed border-gray-300 p-8 text-center text-gray-400">
+          <div className="text-3xl mb-2">📅</div>
+          <div className="text-sm font-medium">No activities for Day {selectedDay} yet.</div>
+          <div className="text-xs mt-1">Use the button above to add a special activity.</div>
+        </div>
+      )}
       <div className="space-y-2.5">
         {sorted.map(act => {
           const isExpanded = expandedId === act.id;
