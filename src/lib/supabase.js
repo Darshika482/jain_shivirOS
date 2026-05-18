@@ -10,8 +10,8 @@ function readStoredSupabase() {
 }
 
 const stored = readStoredSupabase();
-const SUPABASE_URL = stored.url || import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = stored.key || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = stored.url || '';
+const SUPABASE_KEY = stored.key || '';
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_KEY);
 // Provide placeholder to avoid createClient throwing on empty strings

@@ -6,6 +6,7 @@ import { useStudentStore } from './store/useStudentStore.js';
 import { useVolunteerStore } from './store/useVolunteerStore.js';
 import { useTransactionStore } from './store/useTransactionStore.js';
 import { useCoinStore } from './store/useCoinStore.js';
+import { useConfigStore } from './store/useConfigStore.js';
 import LoginPage from './pages/auth/LoginPage.jsx';
 import VolunteerApp from './pages/volunteer/VolunteerApp.jsx';
 import CoordinatorApp from './pages/coordinator/CoordinatorApp.jsx';
@@ -47,6 +48,12 @@ function RequireAuth({ children, allowedRoles }) {
   return children;
 }
 
+function RequireSetup({ children }) {
+  const isSetupComplete = useConfigStore(s => s.isSetupComplete);
+  if (!isSetupComplete) return <Navigate to="/setup" replace />;
+  return children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -60,48 +67,60 @@ export default function App() {
       <AppInitializer />
       <Routes>
         <Route path="/setup" element={<SetupWizard />} />
-        <Route path="/" element={<Navigate to="/schedule" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/schedule" element={<DailySchedule />} />
-        <Route path="/checkin" element={<AdminCheckIn />} />
+        <Route path="/" element={<RequireSetup><Navigate to="/schedule" replace /></RequireSetup>} />
+        <Route path="/login" element={<RequireSetup><LoginPage /></RequireSetup>} />
+        <Route path="/schedule" element={<RequireSetup><DailySchedule /></RequireSetup>} />
+        <Route path="/checkin" element={<RequireSetup><AdminCheckIn /></RequireSetup>} />
 
         <Route path="/mentor/actions" element={
-          <RequireAuth allowedRoles={['volunteer', 'admin']}>
-            <VolunteerApp />
-          </RequireAuth>
+          <RequireSetup>
+            <RequireAuth allowedRoles={['volunteer', 'admin']}>
+              <VolunteerApp />
+            </RequireAuth>
+          </RequireSetup>
         } />
 
-        <Route path="/volunteer" element={<Navigate to="/mentor/actions" replace />} />
-        <Route path="/mentor" element={<Navigate to="/mentor/actions" replace />} />
+        <Route path="/volunteer" element={<RequireSetup><Navigate to="/mentor/actions" replace /></RequireSetup>} />
+        <Route path="/mentor" element={<RequireSetup><Navigate to="/mentor/actions" replace /></RequireSetup>} />
 
         <Route path="/teacher" element={
-          <RequireAuth allowedRoles={['teacher', 'admin']}>
-            <TeacherAttendanceApp />
-          </RequireAuth>
+          <RequireSetup>
+            <RequireAuth allowedRoles={['teacher', 'admin']}>
+              <TeacherAttendanceApp />
+            </RequireAuth>
+          </RequireSetup>
         } />
 
         <Route path="/coordinator" element={
-          <RequireAuth allowedRoles={['coordinator']}>
-            <CoordinatorApp />
-          </RequireAuth>
+          <RequireSetup>
+            <RequireAuth allowedRoles={['coordinator']}>
+              <CoordinatorApp />
+            </RequireAuth>
+          </RequireSetup>
         } />
 
         <Route path="/coinkeeper" element={
-          <RequireAuth allowedRoles={['coinkeeper']}>
-            <CoinKeeperApp />
-          </RequireAuth>
+          <RequireSetup>
+            <RequireAuth allowedRoles={['coinkeeper']}>
+              <CoinKeeperApp />
+            </RequireAuth>
+          </RequireSetup>
         } />
 
         <Route path="/collection" element={
-          <RequireAuth allowedRoles={['collection', 'admin']}>
-            <CollectionStation />
-          </RequireAuth>
+          <RequireSetup>
+            <RequireAuth allowedRoles={['collection', 'admin']}>
+              <CollectionStation />
+            </RequireAuth>
+          </RequireSetup>
         } />
 
         <Route path="/admin/*" element={
-          <RequireAuth allowedRoles={['admin']}>
-            <AdminLayout />
-          </RequireAuth>
+          <RequireSetup>
+            <RequireAuth allowedRoles={['admin']}>
+              <AdminLayout />
+            </RequireAuth>
+          </RequireSetup>
         } />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
