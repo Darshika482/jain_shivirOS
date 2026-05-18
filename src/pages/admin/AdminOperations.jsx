@@ -362,134 +362,7 @@ function EventsSection({ events, setEvents, responsibilities, setResps }) {
   );
 }
 
-// ── Mentors Tab ────────────────────────────────────────────────────────────────
 
-function MentorsSection({ volunteers, events, assignments, setAssignments }) {
-  const [filterGender, setFilterGender] = useState('all');
-  const [selectedMentor, setSelectedMentor]   = useState(null);
-  const [gbEdit, setGbEdit]                   = useState(null);
-  const [toggling, setToggling]               = useState(null);
-
-  const mentors = volunteers.filter(v => (v.roles || []).includes('Zone Mentor'));
-  const filtered = filterGender === 'all' ? mentors : mentors.filter(v => {
-    const isFemale = ['Tanu','Jiya','Srishti','Ankita','Anuprekstha','Shreni','Nishtha','Vishuddhi','Akanksha','Anubhuti','Darshika','Kalpana Didi','Sapna Didi','Shuchi Didi','Bharati Didi','Ritu Ji','Ashi Ji','Smita Bhabhi','Richa Bhabhi','Neha Didi','Surbhi Bhabhi']
-      .some(n => v.name.includes(n.split(' ')[0]));
-    return filterGender === 'female' ? isFemale : !isFemale;
-  });
-
-  function getMentorAssignments(mentorId) {
-    return assignments.filter(a => a.mentor_id === mentorId).map(a => a.event_id);
-  }
-
-  async function toggleEventAssignment(mentorId, eventId) {
-    setToggling(`${mentorId}_${eventId}`);
-    const existing = assignments.find(a => a.mentor_id === mentorId && a.event_id === eventId);
-    try {
-      if (existing) {
-        await supabase.from('mentor_event_assignments').delete().eq('id', existing.id);
-        setAssignments(prev => prev.filter(a => a.id !== existing.id));
-        toast.success('Assignment removed.');
-      } else {
-        const id = makeId('mea');
-        await supabase.from('mentor_event_assignments').insert({ id, mentor_id: mentorId, event_id: eventId });
-        setAssignments(prev => [...prev, { id, mentor_id: mentorId, event_id: eventId }]);
-        toast.success('Event assigned.');
-      }
-    } catch {
-      toast.error('Failed. Check connection.');
-    } finally {
-      setToggling(null);
-    }
-  }
-
-  async function toggleSenior(vol) {
-    const { error } = await supabase.from('volunteers').update({ is_senior: !vol.is_senior }).eq('id', vol.id);
-    if (error) { toast.error('Update failed.'); return; }
-    toast.success(vol.is_senior ? 'Senior status removed.' : 'Senior status granted.');
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="font-bold text-gray-700 flex-1">Mentors ({filtered.length})</div>
-        <div className="flex gap-1">
-          {['all','female','male'].map(g => (
-            <button key={g} onClick={() => setFilterGender(g)}
-              className={`text-xs px-3 py-1.5 rounded-full border font-semibold transition-colors
-                ${filterGender === g ? 'bg-forest-600 text-white border-forest-600' : 'border-gray-300 text-gray-600 hover:bg-gray-50'}`}>
-              {g === 'all' ? 'All' : g === 'female' ? '👩 Female' : '👨 Male'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {filtered.map(v => {
-        const evIds = getMentorAssignments(v.id);
-        const isExpanded = selectedMentor === v.id;
-
-        return (
-          <div key={v.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 p-4 cursor-pointer" onClick={() => setSelectedMentor(isExpanded ? null : v.id)}>
-              <div className="w-10 h-10 rounded-full bg-forest-100 flex items-center justify-center text-sm font-bold text-forest-700 flex-shrink-0">
-                {v.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-900 truncate">{v.name}</div>
-                <div className="text-xs text-gray-400 mt-0.5">
-                  {evIds.length} events · {v.city || ''}
-                  {v.is_senior && <span className="ml-1.5 text-purple-600 font-semibold">Senior</span>}
-                </div>
-              </div>
-              <span className="text-gray-400 text-sm flex-shrink-0">{isExpanded ? '▲' : '▼'}</span>
-            </div>
-
-            {isExpanded && (
-              <div className="border-t border-gray-100 p-4 space-y-4">
-                {/* Senior toggle */}
-                <div className="flex items-center justify-between p-3 bg-purple-50 rounded-xl border border-purple-100">
-                  <div>
-                    <div className="text-sm font-semibold text-purple-800">Senior Mentor</div>
-                    <div className="text-xs text-purple-500">Can apply negative markings</div>
-                  </div>
-                  <button onClick={() => toggleSenior(v)}
-                    className={`text-xs font-semibold px-4 py-2 rounded-xl transition-colors ${v.is_senior ? 'bg-purple-600 text-white' : 'border border-purple-300 text-purple-600 hover:bg-purple-50'}`}>
-                    {v.is_senior ? '✓ Senior' : 'Grant Senior'}
-                  </button>
-                </div>
-
-                {/* Event assignments */}
-                <div>
-                  <div className="text-sm font-semibold text-gray-700 mb-2">Event Assignments</div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {events.filter(e => e.is_active).map(ev => {
-                      const assigned = evIds.includes(ev.id);
-                      const key = `${v.id}_${ev.id}`;
-                      return (
-                        <button
-                          key={ev.id}
-                          disabled={toggling === key}
-                          onClick={() => toggleEventAssignment(v.id, ev.id)}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium text-left transition-colors active:scale-95 disabled:opacity-50
-                            ${assigned ? 'bg-forest-50 border-forest-400 text-forest-800' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                        >
-                          <span className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center text-[10px]
-                            ${assigned ? 'bg-forest-600 border-forest-600 text-white' : 'border-gray-300'}`}>
-                            {assigned ? '✓' : ''}
-                          </span>
-                          <span className="truncate">{ev.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ── Assignment Matrix Tab ──────────────────────────────────────────────────────
 
@@ -1095,7 +968,6 @@ function ClassesSection() {
 const TABS = [
   { key: 'classes',  icon: '🏫', label: 'Classes' },
   { key: 'events',   icon: '📅', label: 'Events' },
-  { key: 'mentors',  icon: '👥', label: 'Mentors' },
   { key: 'matrix',   icon: '⊞',  label: 'Matrix' },
   { key: 'rooms',    icon: '🏠', label: 'Rooms' },
   { key: 'pins',     icon: '🔑', label: 'PINs' },
@@ -1138,8 +1010,7 @@ export default function AdminOperations() {
       {/* Content */}
       {activeTab === 'classes' && <ClassesSection />}
       {activeTab === 'events'  && <EventsSection events={events} setEvents={setEvents} responsibilities={responsibilities} setResps={setResps} />}
-      {activeTab === 'mentors' && <MentorsSection volunteers={volunteers} events={events} assignments={assignments} setAssignments={setAssignments} />}
-      {activeTab === 'matrix'  && <MatrixSection volunteers={volunteers} events={events} assignments={assignments} setAssignments={setAssignments} />}
+{activeTab === 'matrix'  && <MatrixSection volunteers={volunteers} events={events} assignments={assignments} setAssignments={setAssignments} />}
       {activeTab === 'rooms'   && <RoomDisciplineSection roomLogs={roomLogs} setRoomLogs={setRoomLogs} students={students} />}
       {activeTab === 'pins'    && <PinsSection volunteers={volunteers} />}
       {activeTab === 'log'     && <OperationsLogSection gbLogs={gbLogs} coinLogs={coinLogs} negLogs={negLogs} volunteers={volunteers} students={students} />}
