@@ -55,10 +55,9 @@ export default function SetupWizard() {
     setConnError('');
     try {
       const client = createClient(url.trim(), anonKey.trim());
-      const { error } = await client.from('students').select('id').limit(1);
-      if (error && !error.message?.includes('does not exist') && !error.message?.includes('PGRST')) {
-        throw new Error(error.message);
-      }
+      // Use auth.getSession() — works without any tables existing yet
+      const { error } = await client.auth.getSession();
+      if (error) throw new Error(error.message);
       setConnected(true);
       saveSupabaseConfig({ supabaseUrl: url.trim(), supabaseAnonKey: anonKey.trim() });
     } catch (err) {
