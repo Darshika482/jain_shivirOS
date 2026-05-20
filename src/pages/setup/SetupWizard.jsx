@@ -141,10 +141,38 @@ export default function SetupWizard() {
             <div className="space-y-4">
               <div>
                 <div className="text-lg font-bold text-gray-900">Connect your Supabase project</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  Go to <strong>supabase.com</strong> → your project → <strong>Settings → API</strong>
-                </div>
+                <div className="text-sm text-gray-500 mt-1">ShivirOS needs a free Supabase database to store camp data.</div>
               </div>
+
+              {/* Create project guide */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                <div className="text-xs font-semibold text-blue-800 uppercase tracking-wide">Don't have a project yet? Follow these steps:</div>
+                <div className="flex items-start gap-2 text-sm text-blue-800">
+                  <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+                  <span>Go to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="underline font-semibold">supabase.com</a> and create a free account</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-blue-800">
+                  <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                  <span>Click <strong>New project</strong>, give it a name (e.g. "Shivir 2026") and a database password</span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-blue-800">
+                  <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                  <span>Wait ~1 min for the project to be ready, then open <strong>Project Settings → API</strong></span>
+                </div>
+                <div className="flex items-start gap-2 text-sm text-blue-800">
+                  <span className="bg-blue-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+                  <span>Copy the <strong>Project URL</strong> and <strong>anon / public key</strong> into the fields below</span>
+                </div>
+                <a
+                  href="https://supabase.com/dashboard/new"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block mt-1 w-full text-center py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold"
+                >
+                  Create Supabase project ↗
+                </a>
+              </div>
+
               <div>
                 <label className="text-sm font-medium text-gray-700">Project URL</label>
                 <input
